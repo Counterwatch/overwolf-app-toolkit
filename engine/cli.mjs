@@ -48,9 +48,14 @@ function fmtTs(ts) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
+// Catch-all / informational signals whose content is already covered by the
+// clustered Top-errors/Top-warnings sections — show them as counts, not evidence.
+const OVERVIEW_ONLY = new Set(["error-line", "warning-line", "app-exception", "auth-signal", "sync-signal", "game-detection"]);
+
 function renderReport(d) {
   const lines = [];
   const h = (s) => lines.push("", s, "=".repeat(s.length));
+  const clean = (m, n = 160) => String(m).replace(/\n/g, " ⏎ ").slice(0, n);
 
   h("Overwolf Log Doctor — diagnosis");
   lines.push(`Bundle valid: ${d.bundle.valid ? "yes" : "NO (does not look like an Overwolf bundle)"}`);
@@ -62,20 +67,34 @@ function renderReport(d) {
     for (const [k, v] of Object.entries(d.environment)) lines.push(`  ${k}: ${v}`);
   }
 
+  // The headline: the distinct error messages, most frequent first.
+  h("Top errors (distinct messages, most frequent)");
+  if (!d.topErrors?.length) lines.push("  (no error-level lines found)");
+  for (const c of d.topErrors ?? []) {
+    lines.push(`  ${String(c.count).padStart(6)}×  (${c.level}) ${clean(c.sample, 150)}`);
+    lines.push(`           ${c.file ?? ""} · ${fmtTs(c.firstTs)} → ${fmtTs(c.lastTs)}`);
+  }
+
+  if (d.topWarnings?.length) {
+    h("Top warnings (distinct messages, most frequent)");
+    for (const c of d.topWarnings) lines.push(`  ${String(c.count).padStart(6)}×  ${clean(c.sample, 130)}`);
+  }
+
   if (d.correlations.length) {
-    h("Correlations (read these first)");
+    h("Correlations");
     for (const c of d.correlations) lines.push(`  ${SEV_BADGE[c.severity] ?? "[NOTE]"} ${c.message}`);
   }
 
   if (d.sessions.length) {
     h("Sessions");
-    for (const s of d.sessions) {
+    for (const s of d.sessions.slice(0, 10)) {
       lines.push(`  ${s.file}:`);
       s.sessions.forEach((ses, i) => lines.push(`    #${i + 1}  ${fmtTs(ses.start)} → ${fmtTs(ses.end)}  (${ses.entries} entries)`));
     }
+    if (d.sessions.length > 10) lines.push(`  … (+${d.sessions.length - 10} more log files)`);
   }
 
-  h(`Signals (${d.signals.length})`);
+  h(`Signal categories (${d.signals.length})`);
   if (!d.signals.length) lines.push("  (none)");
   for (const sig of d.signals) {
     lines.push(`  ${SEV_BADGE[sig.severity] ?? "[INFO]"} ${sig.title} — ${sig.count} hit(s) [${sig.id}]`);
@@ -83,12 +102,15 @@ function renderReport(d) {
       const compact = Object.entries(sig.data).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
       if (compact) lines.push(`        data: ${compact}`);
     }
-    for (const ev of sig.evidence.slice(0, 4)) lines.push(`        · ${fmtTs(ev.ts)} (${ev.level}) ${ev.file}: ${ev.message.replace(/\n/g, " ⏎ ")}`);
+    // Evidence only for specific problem signals — the catch-alls are in Top errors.
+    if (!OVERVIEW_ONLY.has(sig.id)) {
+      for (const ev of sig.evidence.slice(0, 2)) lines.push(`        · ${fmtTs(ev.ts)} (${ev.level}) ${ev.file}: ${clean(ev.message)}`);
+    }
   }
 
   h("Timeline (chronological, notable events)");
   if (!d.timeline.length) lines.push("  (none)");
-  for (const t of d.timeline) lines.push(`  ${fmtTs(t.ts)} (${t.level}) ${t.file}: ${t.message.replace(/\n/g, " ⏎ ")}`);
+  for (const t of d.timeline.slice(0, 30)) lines.push(`  ${fmtTs(t.ts)} (${t.level}) ${t.file}: ${clean(t.message, 200)}`);
 
   return lines.join("\n");
 }

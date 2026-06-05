@@ -83,8 +83,11 @@ export const DETECTORS = [
     category: "auth",
     severity: "notice",
     scope: "any",
+    informational: true,
+    // Narrower than "any line mentioning token/session" — those appear on nearly
+    // every line in some apps and drowned the report. Match auth *events* instead.
     match: (e) =>
-      /\b(auth|login|log ?in|logout|log ?out|sign(?:ed)?[ _-]?in|sign(?:ed)?[ _-]?out|\botp\b|token|session|unauthor|credential|\b401\b|\b403\b)\b/i.test(
+      /\b(login|log ?in|logout|log ?out|sign(?:ed)?[ _-]?in|sign(?:ed)?[ _-]?out|\botp\b|unauthor|forbidden|access denied|\b401\b|\b403\b|authentication|invalid (?:token|credential)|token (?:expired|refresh)|session (?:expired|invalid))\b/i.test(
         e.message ?? "",
       ),
   },
@@ -94,6 +97,7 @@ export const DETECTORS = [
     category: "sync",
     severity: "notice",
     scope: "any",
+    informational: true,
     match: (e) =>
       /\b(sync|synced|syncing|replicat|backfill|checkpoint|push(?:ed|ing)?|pull(?:ed|ing)?|upload(?:ed|ing)?|offline|realtime|websocket|conflict|pending (?:changes|writes|docs|documents))\b/i.test(
         e.message ?? "",
@@ -137,6 +141,19 @@ export const DETECTORS = [
       ),
   },
   {
+    id: "database-signal",
+    title: "Local storage / database issues",
+    category: "storage",
+    severity: "warn",
+    scope: "any",
+    // IndexedDB / local DB problems are a common class across Overwolf apps
+    // (database closed/locked/corrupt, creation timeouts, quota, web-locks).
+    match: (e) =>
+      /\b(indexeddb|database (?:has been |is |was )?(?:closed|locked|corrupt(?:ed)?)|database (?:creation|initialization|init) (?:error|timeout|failed)|datastore|object ?store|transaction (?:aborted|inactive|failed)|quota ?exceeded|web ?locks?|lock broken|stealoption|steal option)\b/i.test(
+        e.message ?? "",
+      ),
+  },
+  {
     id: "updater-issue",
     title: "Overwolf updater problems",
     category: "updater",
@@ -162,6 +179,7 @@ export const DETECTORS = [
     category: "game",
     severity: "info",
     scope: "any",
+    informational: true,
     match: (e) =>
       /\b(game (?:started|stopped|detected|launched|running|closed|exited)|setRequiredFeatures|required features|gep_internal|match (?:started|ended|info)|player (?:changed|presence)|presence (?:updated|registered))\b/i.test(
         e.message ?? "",

@@ -8,5 +8,9 @@
 2026-01-01 12:00:20,000 (WARN) health.js (:30) - [HealthMonitor/check] Game Events Provider appears unhealthy (no events received)
 2026-01-01 12:05:00,000 (INFO) game.js (:50) - [GameMonitor] Game detected: Overwatch (id 10844); setting required features
 2026-01-01 12:05:01,000 (ERROR) renderer.js (:200) - [Renderer] Uncaught TypeError: cannot read properties of undefined (reading 'profile')
+2026-01-01 12:05:01,500 (ERROR) store.js (:14) - [Store] write failed: timeout after 1000ms
+2026-01-01 12:05:02,500 (ERROR) store.js (:14) - [Store] write failed: timeout after 2000ms
+2026-01-01 12:05:03,200 (ERROR) store.js (:14) - [Store] write failed: timeout after 3000ms
+2026-01-01 12:05:04,000 (ERROR) db.js (:7) - [DB] IndexedDB: database has been closed
 2026-01-01 12:05:02,000 (INFO) widget.js (:9) - [CustomServiceXYZ/widget] widget refreshed for ExamplePlayer#1234
 2026-01-01 12:05:03,000 (WARN) net.js (:5) - [Net/fetch] fetch failed: net::ERR_CONNECTION_TIMED_OUT

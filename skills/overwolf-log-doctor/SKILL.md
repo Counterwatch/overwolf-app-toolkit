@@ -32,8 +32,9 @@ anything shareable, and mask identifiers yourself when quoting lines.
    - Add `--rules <path>` if the app team has an external rule pack of app-specific
      detectors (see `references/extending-detectors.md`).
    - Use `--report` instead of `--json` for a quick human-readable view.
-   - The JSON has: `bundle`, `environment`, `sessions`, `signals` (ranked
-     high→low severity, each with `evidence`), `correlations`, and a `timeline`.
+   - The JSON has: `bundle`, `environment`, `topErrors` / `topWarnings` (distinct
+     messages clustered + counted, most frequent first — usually the headline),
+     `signals` (category counts ranked by severity), `correlations`, and a `timeline`.
 
 3. **Ground yourself in the platform model.** If you're unsure what a window, the
    Game Events Provider, or the bundle layout means, load the primer:
@@ -46,10 +47,11 @@ anything shareable, and mask identifiers yourself when quoting lines.
    Bundle anatomy (what each file is) if you need it:
    @${CLAUDE_PLUGIN_ROOT}/references/bundle-anatomy.md
 
-5. **Rank by relevance to the complaint.** Lead with the `correlations` and the
-   signals most related to what the user reported (e.g. a sync complaint → the
-   `sync-signal` data + the activity-vs-sync correlation + auth state). Don't bury
-   the likely cause under low-severity noise.
+5. **Rank by relevance to the complaint.** Lead with `topErrors` (the distinct,
+   most-frequent error messages — often the real story even when the user's
+   description is a downstream symptom), then the `correlations` and the signals
+   most related to what the user reported. Note that the filename's complaint is
+   the user's *guess*; let the clustered errors tell you what's actually dominating.
 
 6. **Write the report.** Structure it as:
    - **Summary** — one or two sentences: most likely cause(s), confidence.

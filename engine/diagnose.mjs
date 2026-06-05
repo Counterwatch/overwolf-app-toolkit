@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { readBundle, fileLabel } from "./bundle.mjs";
 import { parseLines, splitSessions, timeSpan } from "./logline.mjs";
 import { DETECTORS, levelSeverity, severityRank } from "./detectors.mjs";
+import { clusterMessages } from "./cluster.mjs";
 
 const PARSE_CATEGORIES = new Set(["platform-trace", "updater", "app-log", "system-app-log"]);
 const MAX_READ_BYTES = 8 * 1024 * 1024;
@@ -163,11 +164,15 @@ export function diagnose(dir, opts = {}) {
     if (matches.length === 0) continue;
     matchedById.set(d.id, matches);
 
-    // Effective severity = max of the detector's floor and its evidence levels.
+    // Effective severity = max of the detector's floor and its evidence levels —
+    // EXCEPT for informational "activity" detectors (auth/sync/game), which stay at
+    // their floor so a single error line doesn't paint the whole category red.
     let sev = d.severity ?? "notice";
-    for (const m of matches) {
-      const ls = levelSeverity(m.entry.level);
-      if (severityRank(ls) > severityRank(sev)) sev = ls;
+    if (!d.informational) {
+      for (const m of matches) {
+        const ls = levelSeverity(m.entry.level);
+        if (severityRank(ls) > severityRank(sev)) sev = ls;
+      }
     }
 
     const evidence = matches
@@ -207,23 +212,25 @@ export function diagnose(dir, opts = {}) {
   const lastActivityTs = gameMatches.reduce((max, m) => Math.max(max, m.entry.ts ?? 0), 0) || null;
   const lastSyncTs = syncData?.lastCompleteTs ?? syncData?.lastPushedTs ?? null;
 
-  if (lastActivityTs && lastSyncTs && lastActivityTs > lastSyncTs + 5000) {
+  // Only flag a meaningful gap (>60s) — a few seconds of activity after the last
+  // sync is the normal end-of-session pattern and isn't worth surfacing.
+  if (lastActivityTs && lastSyncTs && lastActivityTs > lastSyncTs + 60000) {
     correlations.push({
       id: "activity-after-sync",
-      severity: "warn",
+      severity: "notice",
       message:
-        "Game/app activity was recorded after the last successful sync. Data generated after that " +
-        "point may not have reached the server.",
+        "Game/app activity was recorded well after the last successful sync — if the user reports " +
+        "missing data, check whether anything generated after that point reached the server.",
       data: { lastActivityTs, lastSyncTs },
     });
   }
   if (syncData && syncData.sawComplete && syncData.lastPushed === 0 && lastActivityTs) {
     correlations.push({
       id: "synced-but-zero-pushed",
-      severity: "notice",
+      severity: "info",
       message:
-        'Sync reported a "complete/fully synced" state but the last result pushed 0 records, despite ' +
-        "recorded activity. Either there was nothing new to push, or new data was not captured into the sync set.",
+        'Observation: sync reached a "complete/fully synced" state but the last result pushed 0 ' +
+        "records. Usually benign (nothing new to push); only relevant if the complaint is about data not saving.",
       data: { lastPushed: syncData.lastPushed, lastActivityTs },
     });
   }
@@ -246,6 +253,20 @@ export function diagnose(dir, opts = {}) {
     .sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0))
     .slice(0, MAX_TIMELINE);
 
+  // Cluster the actual error/warning messages so the report can lead with the
+  // distinct problems (e.g. "Database has been closed ×412") instead of a raw count.
+  // Skip Overwolf's own system-app logs — focus on the developer app + platform.
+  const errItems = [];
+  const warnItems = [];
+  for (const { entry, ctx, label } of tagged) {
+    if (ctx.file.category === "system-app-log") continue;
+    const msg = entry.message ?? entry.raw;
+    if (entry.level === "ERROR" || entry.level === "FATAL") errItems.push({ message: msg, level: entry.level, ts: entry.ts, file: label });
+    else if (entry.level === "WARN") warnItems.push({ message: msg, level: entry.level, ts: entry.ts, file: label });
+  }
+  const topErrors = clusterMessages(errItems, 8);
+  const topWarnings = clusterMessages(warnItems, 5);
+
   const environment = extractEnvironment(platformText, appText);
 
   // Rank signals high→low severity for presentation.
@@ -262,6 +283,8 @@ export function diagnose(dir, opts = {}) {
       categories: countBy(inventory.files, (f) => f.category),
     },
     environment,
+    topErrors,
+    topWarnings,
     sessions: sessionsByFile,
     signals,
     correlations,

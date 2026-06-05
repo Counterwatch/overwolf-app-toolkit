@@ -14,6 +14,8 @@ const RULES = [
   { category: "jwt", re: /\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\b/g },
   { category: "email", re: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g },
   { category: "uuid", re: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi },
+  // Overwolf user identifiers, e.g. "OW_7f5a..." returned by getCurrentUser.
+  { category: "userid", re: /\bOW_[A-Za-z0-9_-]{6,}\b/g },
   // BattleTag / Riot-style game handles: Name#1234. No spaces in the class — a space
   // would let the greedy match swallow preceding words before the "#NNNN".
   { category: "gamertag", re: /\b[A-Za-z][A-Za-z0-9._-]{1,30}#\d{3,6}\b/g },

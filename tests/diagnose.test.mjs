@@ -73,6 +73,25 @@ test("rejects a malformed rule pack", async () => {
   await assert.rejects(() => loadRulePack(pathToFileURL(join(here, "fixtures", "sample-bundle", "Crash.json")).href));
 });
 
+test("clusters error lines into top distinct messages", () => {
+  const d = diagnose(FIXTURE);
+  assert.ok(d.topErrors.length >= 1);
+  // the three "write failed: timeout after Nms" lines collapse into one cluster of 3
+  const wf = d.topErrors.find((c) => /write failed/i.test(c.sample));
+  assert.ok(wf, "expected a 'write failed' cluster");
+  assert.equal(wf.count, 3);
+});
+
+test("activity detectors stay informational (a stray error doesn't paint them red)", () => {
+  const d = diagnose(FIXTURE);
+  assert.notEqual(byId(d, "auth-signal").severity, "error");
+  assert.notEqual(byId(d, "sync-signal").severity, "error");
+});
+
+test("flags local storage / database issues", () => {
+  assert.ok(byId(diagnose(FIXTURE), "database-signal"), "expected database-signal");
+});
+
 test("handles a non-bundle directory gracefully", () => {
   const d = diagnose(join(here, "fixtures", "rules-pack"));
   assert.equal(d.bundle.valid, false);

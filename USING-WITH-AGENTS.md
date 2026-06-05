@@ -58,6 +58,12 @@ node engine/cli.mjs <path> [--json | --report] [--redact] [--rules <file>]
     "appVersion": "2.0.0", "overwolfVersion": "0.300.0.11",
     "os": "Windows 11 64-bit", "gpu": "NVIDIA GeForce RTX 3060", "timezone": "UTC+02:00"
   },
+  "topErrors": [                        // distinct ERROR/FATAL messages, most frequent first — usually the headline
+    { "count": 412, "level": "ERROR", "sample": "Database has been closed",
+      "normalized": "database has been closed", "firstTs": 1767265200000, "lastTs": 1767265500000,
+      "file": "Apps/<App>/background.html.log" }
+  ],
+  "topWarnings": [ /* same shape, for WARN lines */ ],
   "sessions": [
     { "file": "Apps/ExampleApp/background.html.log", "window": "background",
       "sessions": [{ "entries": 11, "start": 1767265200010, "end": 1767265503000 }] }
