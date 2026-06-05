@@ -1,0 +1,11 @@
+{
+  "name": "overwolf-app-toolkit",
+  "version": "0.1.0",
+  "description": "Open-source toolkit for Overwolf app developers: diagnose user support-log bundles (overwolf-log-doctor) and load a distilled Overwolf platform primer (overwolf-app-primer).",
+  "author": {
+    "name": "Counterwatch",
+    "url": "https://counterwatch.gg"
+  },
+  "homepage": "https://github.com/Counterwatch/overwolf-app-toolkit",
+  "license": "MIT"
+}

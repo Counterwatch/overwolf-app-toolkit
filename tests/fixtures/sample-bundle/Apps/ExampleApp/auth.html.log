@@ -1,0 +1,4 @@
+================== new session ==================
+2026-01-01 12:00:01,000 (INFO) auth-window.js (:10) - [AuthWindow] Opened login window
+2026-01-01 12:00:01,500 (INFO) auth-window.js (:20) - [AuthWindow] Sent login code to user@example.com
+2026-01-01 12:00:01,900 (INFO) auth-window.js (:30) - [AuthWindow] Login verified, closing window

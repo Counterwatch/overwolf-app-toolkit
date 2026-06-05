@@ -1,0 +1,16 @@
+{
+  "name": "overwolf-app-toolkit",
+  "description": "Open-source Claude Code skills for Overwolf app developers.",
+  "owner": {
+    "name": "Counterwatch",
+    "url": "https://counterwatch.gg"
+  },
+  "plugins": [
+    {
+      "name": "overwolf-app-toolkit",
+      "description": "Diagnose Overwolf user support-log bundles and load a distilled Overwolf platform primer.",
+      "version": "0.1.0",
+      "source": "./"
+    }
+  ]
+}

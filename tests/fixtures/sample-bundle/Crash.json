@@ -1,0 +1,9 @@
+{
+  "ExceptionHash": "00000000000000000000000000000000",
+  "ExceptionDate": "2026-01-01T12:10:00.000+02:00",
+  "Version": "0.300.0.11",
+  "SubSystem": "Logs",
+  "Process": "Logs",
+  "MessageAndStack": "System.Exception: Send logs request - 00000000-0000-4000-8000-000000000002",
+  "Status": 2
+}

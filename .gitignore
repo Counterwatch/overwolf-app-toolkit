@@ -1,0 +1,15 @@
+# Never commit real support-log bundles — they contain end-user PII.
+*.zip
+/tmp/
+**/owlog-extract-*/
+**/overwolf_logs_extract_*/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.local

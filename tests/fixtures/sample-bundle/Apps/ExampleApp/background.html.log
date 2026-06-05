@@ -1,0 +1,12 @@
+================== new session ==================
+2026-01-01 12:00:00,010 (INFO) BackgroundController.js (:12) - [Kernel] Starting booting version 2.0.0
+2026-01-01 12:00:01,500 (INFO) auth.js (:40) - [Auth/otp] Sent login code to user@example.com
+2026-01-01 12:00:02,000 (INFO) auth.js (:44) - [Auth/onState] Auth state changed: SIGNED_IN (user 00000000-0000-4000-8000-000000000001)
+2026-01-01 12:00:03,000 (INFO) sync.js (:88) - [SyncService/run] Starting sync for user 00000000-0000-4000-8000-000000000001
+2026-01-01 12:00:04,100 (INFO) sync.js (:120) - [SyncService/run] Initial sync complete: 0 records pushed
+2026-01-01 12:00:04,200 (INFO) sync.js (:130) - [SyncService/run] All collections fully synced
+2026-01-01 12:00:20,000 (WARN) health.js (:30) - [HealthMonitor/check] Game Events Provider appears unhealthy (no events received)
+2026-01-01 12:05:00,000 (INFO) game.js (:50) - [GameMonitor] Game detected: Overwatch (id 10844); setting required features
+2026-01-01 12:05:01,000 (ERROR) renderer.js (:200) - [Renderer] Uncaught TypeError: cannot read properties of undefined (reading 'profile')
+2026-01-01 12:05:02,000 (INFO) widget.js (:9) - [CustomServiceXYZ/widget] widget refreshed for ExamplePlayer#1234
+2026-01-01 12:05:03,000 (WARN) net.js (:5) - [Net/fetch] fetch failed: net::ERR_CONNECTION_TIMED_OUT

@@ -1,0 +1,2 @@
+================== new session ==================
+2026-01-01 12:00:05,000 (ERROR) launcher.js (:77) - [launcher] Refused to frame 'https://ads.example.com' because it violates the Content Security Policy directive "frame-src"

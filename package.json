@@ -1,0 +1,47 @@
+{
+  "name": "overwolf-app-toolkit",
+  "version": "0.1.0",
+  "description": "Open-source Claude Code plugin for Overwolf app developers: an offline log-bundle troubleshooter (overwolf-log-doctor) and a distilled Overwolf platform primer (overwolf-app-primer). Zero-dependency, zero-build.",
+  "keywords": [
+    "overwolf",
+    "claude-code",
+    "claude",
+    "ai",
+    "plugin",
+    "skills",
+    "logs",
+    "troubleshooting",
+    "support",
+    "diagnostics"
+  ],
+  "license": "MIT",
+  "author": "Counterwatch (https://counterwatch.gg)",
+  "type": "module",
+  "bin": {
+    "overwolf-log-doctor": "engine/cli.mjs"
+  },
+  "files": [
+    ".claude-plugin",
+    "engine",
+    "references",
+    "skills",
+    "README.md",
+    "USING-WITH-AGENTS.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Counterwatch/overwolf-app-toolkit.git"
+  },
+  "homepage": "https://github.com/Counterwatch/overwolf-app-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/Counterwatch/overwolf-app-toolkit/issues"
+  },
+  "scripts": {
+    "test": "node --test",
+    "doctor": "node engine/cli.mjs"
+  }
+}
