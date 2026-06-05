@@ -64,6 +64,10 @@ node engine/cli.mjs <path> [--app <name>] [--json | --report] [--redact] [--rule
     "appVersion": "2.0.0", "overwolfVersion": "0.300.0.11",
     "os": "Windows 11 64-bit", "gpu": "NVIDIA GeForce RTX 3060", "timezone": "UTC+02:00"
   },
+  "volume": {                           // raw lines vs. distinct messages — reveals spam; topX is capped, these are not
+    "ownedErrors": { "lines": 5432, "distinct": 8 }, "ownedWarnings": { "lines": 60, "distinct": 5 },
+    "platformErrors": { "lines": 120, "distinct": 6 }, "platformWarnings": { "lines": 859 }
+  },
   "topErrors": [                        // the OWNED app's distinct errors, background/main-window weighted — the headline
     { "count": 412, "level": "ERROR", "sample": "Database has been closed",
       "normalized": "database has been closed", "window": "background",

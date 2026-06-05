@@ -22,12 +22,14 @@ Options:
   --report          Emit a human-readable report (default).
   --redact          Mask PII (emails, UUIDs, tokens, gamertags, home paths, IPs).
   --rules <path>    Load extra app-specific detectors from a JS/JSON rule pack.
+  --limit <n>       Max distinct messages per section (default 8/5/6). Raise it for
+                    apps with lots of distinct errors/warnings.
   -h, --help        Show this help.
 
 Privacy: a bundle contains a real end-user's data. Use --redact before sharing output.`;
 
 function parseArgs(argv) {
-  const args = { input: undefined, json: false, report: false, redact: false, rules: undefined, app: undefined };
+  const args = { input: undefined, json: false, report: false, redact: false, rules: undefined, app: undefined, limit: undefined };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") args.json = true;
@@ -35,6 +37,7 @@ function parseArgs(argv) {
     else if (a === "--redact") args.redact = true;
     else if (a === "--rules") args.rules = argv[++i];
     else if (a === "--app") args.app = argv[++i];
+    else if (a === "--limit") args.limit = parseInt(argv[++i], 10);
     else if (a === "-h" || a === "--help") args.help = true;
     else if (!a.startsWith("-") && args.input === undefined) args.input = a;
   }
@@ -75,25 +78,36 @@ function renderReport(d) {
     for (const [k, v] of Object.entries(d.environment)) lines.push(`  ${k}: ${v}`);
   }
 
+  const vol = d.volume ?? {};
+  // "N lines → M distinct" so spam is visible; footer when the list is capped.
+  const withVol = (title, v, shown) => (v && v.lines ? `${title}  (${v.lines} lines → ${v.distinct} distinct)` : title);
+  const moreFooter = (v, shown) => {
+    if (v && v.distinct > shown) lines.push(`  … +${v.distinct - shown} more distinct (use --limit ${v.distinct} to show all)`);
+  };
+
   // The headline: the developer app's distinct errors, background/main weighted.
-  h(`Top errors — ${oa.name ?? "your app"} (background/main window prioritized)`);
+  h(withVol(`Top errors — ${oa.name ?? "your app"} (background/main prioritized)`, vol.ownedErrors));
   if (!d.topErrors?.length) lines.push("  (no error-level lines in your app's logs)");
   for (const c of d.topErrors ?? []) {
     lines.push(`  ${String(c.count).padStart(6)}×  (${c.level}) ${clean(c.sample, 150)}`);
     lines.push(`           ${c.window ? `[${c.window}] ` : ""}${c.file ?? ""} · ${fmtTs(c.firstTs)} → ${fmtTs(c.lastTs)}`);
   }
+  moreFooter(vol.ownedErrors, (d.topErrors ?? []).length);
 
   if (d.topWarnings?.length) {
-    h(`Top warnings — ${oa.name ?? "your app"}`);
+    h(withVol(`Top warnings — ${oa.name ?? "your app"}`, vol.ownedWarnings));
     for (const c of d.topWarnings) lines.push(`  ${String(c.count).padStart(6)}×  ${c.window ? `[${c.window}] ` : ""}${clean(c.sample, 120)}`);
+    moreFooter(vol.ownedWarnings, d.topWarnings.length);
   }
 
   if (d.platformErrors?.length) {
-    h("Overwolf platform errors (Overwolf's own logs — may be the source, not your code)");
+    h(withVol("Overwolf platform errors (Overwolf's own logs — may be the source, not your code)", vol.platformErrors));
     for (const c of d.platformErrors) {
       lines.push(`  ${String(c.count).padStart(6)}×  (${c.level}) ${clean(c.sample, 150)}`);
       lines.push(`           ${c.file ?? ""} · ${fmtTs(c.firstTs)} → ${fmtTs(c.lastTs)}`);
     }
+    moreFooter(vol.platformErrors, d.platformErrors.length);
+    if (vol.platformWarnings?.lines) lines.push(`  (plus ${vol.platformWarnings.lines} Overwolf warning lines, not shown)`);
   }
 
   if (d.otherApps?.length) {
@@ -152,7 +166,7 @@ async function main() {
 
   const resolved = resolveBundleDir(args.input);
   try {
-    let diagnosis = diagnose(resolved.dir, { extraDetectors, ownedApp: args.app });
+    let diagnosis = diagnose(resolved.dir, { extraDetectors, ownedApp: args.app, limit: args.limit });
     // Don't leak the temp extraction path or input path in shareable output.
     diagnosis = { ...diagnosis, bundle: { ...diagnosis.bundle, root: resolved.extracted ? "(extracted)" : diagnosis.bundle.root } };
     if (args.redact) diagnosis = createRedactor().redactDeep(diagnosis);

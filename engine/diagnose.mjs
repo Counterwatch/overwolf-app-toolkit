@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { readBundle, fileLabel, isPlatformApp } from "./bundle.mjs";
 import { parseLines, splitSessions, timeSpan } from "./logline.mjs";
 import { DETECTORS, levelSeverity, severityRank } from "./detectors.mjs";
-import { clusterMessages } from "./cluster.mjs";
+import { clusterMessages, distinctCount } from "./cluster.mjs";
 
 const PARSE_CATEGORIES = new Set(["platform-trace", "updater", "app-log", "system-app-log"]);
 const MAX_READ_BYTES = 8 * 1024 * 1024;
@@ -297,6 +297,7 @@ export function diagnose(dir, opts = {}) {
   const ownedErr = [];
   const ownedWarn = [];
   const platformErr = [];
+  let platformWarnLines = 0;
   const otherErr = new Map();
   const otherWarn = new Map();
   for (const { entry, ctx, label } of tagged) {
@@ -307,19 +308,30 @@ export function diagnose(dir, opts = {}) {
     if (ctx.file.role === "owned") (isErr ? ownedErr : ownedWarn).push(item);
     else if (ctx.file.role === "platform") {
       if (isErr) platformErr.push(item);
+      else platformWarnLines++;
     } else {
       const m = isErr ? otherErr : otherWarn;
       m.set(ctx.file.app, (m.get(ctx.file.app) ?? 0) + 1);
     }
   }
+  // Section caps — overridable with --limit for apps that spam errors/warnings.
+  const lim = (n) => (Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : n);
   // Rank owned errors so the background/main window (where business logic lives,
   // per Overwolf best practice) floats up over noisy UI-window errors.
-  const topErrors = clusterMessages(ownedErr, { limit: 8, score: (c) => c.count * windowWeight(c.window) });
-  const topWarnings = clusterMessages(ownedWarn, { limit: 5 });
-  const platformErrors = clusterMessages(platformErr, { limit: 6 });
+  const topErrors = clusterMessages(ownedErr, { limit: lim(8), score: (c) => c.count * windowWeight(c.window) });
+  const topWarnings = clusterMessages(ownedWarn, { limit: lim(5) });
+  const platformErrors = clusterMessages(platformErr, { limit: lim(6) });
   const otherApps = [...new Set([...otherErr.keys(), ...otherWarn.keys()])]
     .map((name) => ({ name, errors: otherErr.get(name) ?? 0, warnings: otherWarn.get(name) ?? 0 }))
     .sort((a, b) => b.errors - a.errors);
+
+  // Volume totals so a reader can see (and throttle) spam: raw lines vs. distinct.
+  const volume = {
+    ownedErrors: { lines: ownedErr.length, distinct: distinctCount(ownedErr) },
+    ownedWarnings: { lines: ownedWarn.length, distinct: distinctCount(ownedWarn) },
+    platformErrors: { lines: platformErr.length, distinct: distinctCount(platformErr) },
+    platformWarnings: { lines: platformWarnLines },
+  };
 
   const environment = extractEnvironment(platformText, appText);
 
@@ -343,6 +355,7 @@ export function diagnose(dir, opts = {}) {
     },
     ownedApp,
     environment,
+    volume,
     topErrors,
     topWarnings,
     platformErrors,

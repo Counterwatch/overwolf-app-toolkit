@@ -18,6 +18,16 @@ const NORMALIZE_RULES = [
   [/\d+(?:\.\d+)?/g, "<n>"],
 ];
 
+/** How many DISTINCT normalized messages are in a set of items (spam awareness). */
+export function distinctCount(items) {
+  const seen = new Set();
+  for (const it of items) {
+    const k = normalizeMessage(it.message);
+    if (k) seen.add(k);
+  }
+  return seen.size;
+}
+
 /** Strip the leading source/component noise from a log message; keep one line. */
 export function stripPrefix(message) {
   let m = String(message).split("\n")[0];

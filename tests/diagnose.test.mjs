@@ -88,6 +88,20 @@ test("Overwolf's own apps + root traces are 'platform', not 'other'", () => {
   assert.ok(d.platformErrors.some((c) => /download manifest/i.test(c.sample)), "updater error should be a platform error");
 });
 
+test("reports error/warning volume (lines vs distinct) for spam awareness", () => {
+  const v = diagnose(FIXTURE, { ownedApp: "ExampleApp" }).volume;
+  assert.ok(v.ownedErrors.lines >= v.ownedErrors.distinct);
+  assert.ok(v.ownedErrors.distinct >= 1);
+  assert.equal(typeof v.platformWarnings.lines, "number");
+});
+
+test("--limit caps the number of distinct messages shown", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp", limit: 1 });
+  assert.equal(d.topErrors.length, 1);
+  // but the full distinct count is still reported in volume
+  assert.ok(d.volume.ownedErrors.distinct > 1);
+});
+
 test("background/main-window errors outrank UI-window errors", () => {
   const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
   assert.equal(d.topErrors[0].window, "background");
