@@ -42,7 +42,8 @@ node engine/cli.mjs "<bundle>" --json --rules ./my-app-rules.mjs
 ```
 
 It accepts a `.zip` (extracted via your OS's unzip) or an already-extracted folder.
-Once published to npm you can also run it without cloning: `npx overwolf-log-doctor …`.
+No clone needed — run it straight from npm with
+`npx -p overwolf-app-toolkit overwolf-log-doctor "<path>" --json`.
 
 ---
 

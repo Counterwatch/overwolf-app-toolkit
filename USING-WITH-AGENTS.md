@@ -10,7 +10,7 @@ the integration contract.
 1. **Run the analyzer** on the bundle and capture JSON:
    ```bash
    node engine/cli.mjs "<path-to-zip-or-folder>" --json
-   # or, once published: npx overwolf-log-doctor "<path>" --json
+   # no clone needed: npx -p overwolf-app-toolkit overwolf-log-doctor "<path>" --json
    ```
 2. **Give the model context**: the JSON output, plus
    `references/signal-playbook.md` (how to interpret each signal) and — if it needs
