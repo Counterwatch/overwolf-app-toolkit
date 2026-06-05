@@ -65,3 +65,9 @@ These combine multiple signals and are usually the headline.
 4. Recommend next steps: what the developer should instrument/check, and what to tell
    the user. If the answer isn't in the logs, say what additional log line or repro
    would resolve it — that's a candidate for a new detector or an app-specific rule.
+
+> **Is it widespread?** A single bundle only tells you about one user. If a finding looks
+> systemic (a crash, an auth/network failure, a sync regression after a version bump),
+> check whether it moved app-wide using the companion **`overwolf-console-mcp`** server
+> (tools like `get_app_crashes`, `get_user_retention_daily`, `get_daily_active_users`).
+> See the toolkit README → "Companion: app-wide analytics".

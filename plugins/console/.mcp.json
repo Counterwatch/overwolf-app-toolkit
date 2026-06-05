@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "overwolf-console": {
+      "command": "npx",
+      "args": ["-y", "overwolf-console-mcp"],
+      "env": {
+        "OVERWOLF_EMAIL": "${user_config.email}",
+        "OVERWOLF_API_KEY": "${user_config.api_key}",
+        "OVERWOLF_DEFAULT_APP_ID": "${user_config.default_app_id}"
+      }
+    }
+  }
+}

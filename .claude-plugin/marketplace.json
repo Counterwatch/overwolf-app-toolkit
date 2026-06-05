@@ -8,9 +8,15 @@
   "plugins": [
     {
       "name": "overwolf-app-toolkit",
-      "description": "Diagnose Overwolf user support-log bundles and load a distilled Overwolf platform primer.",
+      "description": "Diagnose Overwolf user support-log bundles and load a distilled Overwolf platform primer. No credentials needed.",
       "version": "0.1.0",
       "source": "./"
+    },
+    {
+      "name": "overwolf-console",
+      "description": "Optional, opt-in companion that bundles the overwolf-console-mcp server for app-wide Developer Console analytics (DAU, retention, crashes, revenue). Ships disabled; needs your Overwolf API credentials.",
+      "version": "0.1.0",
+      "source": "./plugins/console"
     }
   ]
 }

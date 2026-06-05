@@ -43,5 +43,9 @@
   "scripts": {
     "test": "node --test",
     "doctor": "node engine/cli.mjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

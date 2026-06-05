@@ -1,5 +1,9 @@
 # overwolf-app-toolkit
 
+[![npm version](https://img.shields.io/npm/v/overwolf-app-toolkit.svg)](https://www.npmjs.com/package/overwolf-app-toolkit)
+[![CI](https://github.com/Counterwatch/overwolf-app-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/Counterwatch/overwolf-app-toolkit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Open-source tooling that helps **Overwolf app developers** (and their AI agents) make
 sense of user support logs and the Overwolf platform.
 
@@ -68,13 +72,41 @@ Full contract, JSON schema, and a paste-in agent instruction snippet:
 
 This adds two auto-triggering skills — `overwolf-log-doctor` (say "troubleshoot this
 Overwolf log zip: <path>") and `overwolf-app-primer` (say "explain how Overwolf apps
-work"). They wrap the exact same engine and knowledge base described above.
+work"). They wrap the exact same engine and knowledge base described above. No
+credentials needed.
+
+The same marketplace also offers an **opt-in companion**, `overwolf-console`, which
+bundles the [`overwolf-console-mcp`](https://github.com/Counterwatch/overwolf-console-mcp)
+server for app-wide analytics — see [Companion: app-wide analytics](#companion-app-wide-analytics).
 
 ### Other skill-aware agent CLIs
 
 The `skills/*/SKILL.md` files use the increasingly cross-tool skill format, so
 skill-aware CLIs (e.g. GitHub Copilot CLI, Gemini CLI) may discover them too. Anything
 that can't use skills can still call the CLI directly (see above).
+
+---
+
+## Companion: app-wide analytics
+
+`overwolf-log-doctor` answers *"is **this one user** broken?"* For the complementary
+question — *"is this **widespread**? how's my app doing overall?"* — there's a sibling
+project, **[`overwolf-console-mcp`](https://github.com/Counterwatch/overwolf-console-mcp)**:
+an MCP server wrapping the Overwolf **Developer Console** stats API (DAU/MAU, retention,
+installs, crashes, ads revenue). Natural pairing: log-doctor finds a crash or sync issue
+in one bundle → ask the console MCP whether crashes/retention moved for the whole app.
+
+It's a **separate** project (its own repo + npm package, with its own dependencies), so
+the toolkit only *references* it — nothing is merged in:
+
+- **Claude Code:** the `overwolf-console` plugin in this same marketplace bundles it,
+  shipped **disabled** so it never bothers log-doctor-only users:
+  ```text
+  /plugin install overwolf-console@overwolf-app-toolkit
+  /plugin enable overwolf-console        # prompts for your Overwolf API credentials
+  ```
+- **Any other MCP client / agent:** add it directly — `npx -y overwolf-console-mcp` with
+  `OVERWOLF_EMAIL` + `OVERWOLF_API_KEY` in the env. See its README for setup.
 
 ---
 
@@ -106,7 +138,8 @@ references/          knowledge base (markdown, usable by any agent):
                       overwolf-platform-primer, signal-playbook, bundle-anatomy,
                       extending-detectors
 skills/             Claude Code skills (optional layer over engine + references)
-.claude-plugin/     plugin.json + marketplace.json (Claude Code one-step install)
+.claude-plugin/     marketplace.json + the toolkit plugin manifest
+plugins/console/    opt-in companion plugin that bundles overwolf-console-mcp (analytics)
 tests/              node:test suites + a synthetic fixture bundle
 USING-WITH-AGENTS.md  how to wire the engine into any LLM/agent
 ```

@@ -1,0 +1,49 @@
+name: Release
+
+# Publishes the `overwolf-app-toolkit` package to npm automatically when you publish a
+# GitHub Release. Flow: bump the version (`npm version patch|minor|major`) -> push the
+# tag (`git push --follow-tags`) -> create a GitHub Release for that tag. This runs.
+#
+# AUTH — pick ONE (one-time maintainer setup):
+#   A) npm Trusted Publishing (recommended, no stored secret): at npmjs.com, open the
+#      package's Settings -> Publishing access and add this repo + the "Release"
+#      workflow as a Trusted Publisher. OIDC is then used automatically (needs the
+#      `id-token: write` permission below). The package must already exist on npm, so do
+#      the FIRST publish manually (`npm publish --access public`), then enable.
+#   B) Automation token: create a granular npm "Automation" access token and add it as
+#      the `NPM_TOKEN` repository secret, then set `env: { NODE_AUTH_TOKEN: ... }` on the
+#      publish step below. This works for the first publish too.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance + Trusted Publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      # Ensure an npm new enough for OIDC Trusted Publishing (>= 11.5.1). Harmless if you
+      # use NPM_TOKEN instead.
+      - run: npm install -g npm@latest
+
+      # The engine is zero-dependency and zero-build — nothing to install or compile.
+      - name: Verify before publishing
+        run: node --test
+
+      # Publishes via npm Trusted Publishing (OIDC) — no stored token. Requires the
+      # `id-token: write` permission above and a trusted publisher configured for this
+      # package on npmjs.com. To fall back to a token instead, add an `NPM_TOKEN` secret
+      # and set `env: { NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} }` on this step.
+      - name: Publish to npm
+        run: npm publish --provenance --access public

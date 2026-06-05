@@ -1,0 +1,30 @@
+{
+  "name": "overwolf-console",
+  "version": "0.1.0",
+  "description": "Optional companion: bundles the overwolf-console-mcp server so your AI can query your app's Overwolf Developer Console analytics (DAU/MAU, retention, installs, crashes, ads revenue). Opt-in and credentials-gated.",
+  "author": {
+    "name": "Counterwatch",
+    "url": "https://counterwatch.gg"
+  },
+  "homepage": "https://github.com/Counterwatch/overwolf-console-mcp",
+  "license": "MIT",
+  "defaultEnabled": false,
+  "userConfig": {
+    "email": {
+      "type": "string",
+      "title": "Overwolf account email",
+      "description": "The email of your Overwolf Developer Console account."
+    },
+    "api_key": {
+      "type": "string",
+      "title": "Overwolf Console API key",
+      "description": "From the Overwolf Developer Console -> Settings -> Profile -> 'Revoke and get new API key'.",
+      "sensitive": true
+    },
+    "default_app_id": {
+      "type": "string",
+      "title": "Default app ID (optional)",
+      "description": "Your Overwolf app's UID. Optional — if set, queries default to it instead of needing an app_id each time."
+    }
+  }
+}

@@ -111,9 +111,25 @@ All under `references/` — plain markdown, no tooling required:
 - `bundle-anatomy.md` — what every file in a bundle is, and the log-line format.
 - `extending-detectors.md` — the detector contract + how to add app-specific rules.
 
+## Companion: app-wide analytics
+
+The doctor diagnoses one user's bundle. For *aggregate* questions ("is this crash
+widespread? how's retention?") there's a separate project,
+**[`overwolf-console-mcp`](https://github.com/Counterwatch/overwolf-console-mcp)** — an
+MCP server over the Overwolf Developer Console stats API. Any MCP-capable agent can add
+it directly:
+
+```bash
+npx -y overwolf-console-mcp     # with OVERWOLF_EMAIL + OVERWOLF_API_KEY in the env
+```
+
+A useful agent pattern: when the doctor surfaces a crash/sync/auth signal, cross-check
+whether it's app-wide via the console MCP's tools (`get_app_crashes`,
+`get_user_retention_daily`, `get_daily_active_users`, …) before concluding.
+
 ## Roadmap
 
-An optional MCP-server wrapper (exposing the diagnosis as a tool callable by any
-MCP-capable client) is a natural future addition; it would build on the same engine. The
-engine deliberately stays dependency-free, so such a wrapper would live alongside it
-rather than inside it. Contributions welcome.
+An optional MCP-server wrapper for the doctor itself (exposing the diagnosis as a tool
+callable by any MCP-capable client) is a natural future addition; it would build on the
+same engine. The engine deliberately stays dependency-free, so such a wrapper would live
+alongside it rather than inside it. Contributions welcome.
