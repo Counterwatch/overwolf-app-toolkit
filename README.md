@@ -28,11 +28,11 @@ It provides:
 Requires Node 20+. Nothing to install — the engine has **no dependencies**.
 
 ```bash
-# human-readable report
-node engine/cli.mjs "C:\path\to\SupportLogs.zip" --report
+# human-readable report, scoped to YOUR app (recommended — bundles contain several apps)
+node engine/cli.mjs "C:\path\to\SupportLogs.zip" --app "YourAppName" --report
 
 # structured JSON (the integration point for any tool/agent)
-node engine/cli.mjs "C:\path\to\SupportLogs.zip" --json
+node engine/cli.mjs "C:\path\to\SupportLogs.zip" --app "YourAppName" --json
 
 # mask PII before sharing anything (tickets, chat, issues)
 node engine/cli.mjs "C:\path\to\SupportLogs.zip" --report --redact
@@ -113,12 +113,15 @@ the toolkit only *references* it — nothing is merged in:
 
 ## What it reports
 
-The JSON (`overwolf-log-doctor/diagnosis@1`) contains: `bundle` (layout + primary app),
-`environment` (app/Overwolf version, OS, GPU, timezone), `sessions` (per-window
-timelines), `signals` (ranked findings with evidence), `correlations` (e.g. "activity
-recorded after the last successful sync"), and a merged `timeline`. Detectors are
-**generic** keyword/pattern matchers — they tell you *where to look*, not a guaranteed
-verdict. See [USING-WITH-AGENTS.md](USING-WITH-AGENTS.md) for the field-by-field schema.
+A bundle usually contains **several apps** (yours, Overwolf's own helper apps, and
+unrelated third-party apps), so the report is **scoped by ownership**: `topErrors` /
+`topWarnings` are *your* app's distinct, clustered messages (weighted toward the
+background/main window where the logic lives); `platformErrors` are Overwolf's own
+errors (which may be the real source); and `otherApps` just counts apps you don't own so
+they can be ignored. Plus `environment`, `sessions`, `signals`, `correlations`, and a
+`timeline`. Detectors are **generic** keyword/pattern matchers — they tell you *where to
+look*, not a guaranteed verdict. See [USING-WITH-AGENTS.md](USING-WITH-AGENTS.md) for the
+field-by-field schema.
 
 ## Privacy
 

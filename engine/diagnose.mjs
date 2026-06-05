@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 
-import { readBundle, fileLabel } from "./bundle.mjs";
+import { readBundle, fileLabel, isPlatformApp } from "./bundle.mjs";
 import { parseLines, splitSessions, timeSpan } from "./logline.mjs";
 import { DETECTORS, levelSeverity, severityRank } from "./detectors.mjs";
 import { clusterMessages } from "./cluster.mjs";
@@ -27,6 +27,40 @@ function inScope(scope, cat) {
   if (scope === "app") return cat === "app-log";
   if (scope === "overwolf") return cat !== "app-log" && cat !== "system-app-log";
   return true;
+}
+
+/**
+ * Decide which app is the developer's. A bundle usually contains several apps
+ * (the dev's app, Overwolf's own helper apps, and other third-party apps); the
+ * developer only cares about their own app and the Overwolf platform.
+ * @returns {{name: string|null, requested: string|null, inferred: boolean, matched: boolean}}
+ */
+function resolveOwnedApp(inventory, requested) {
+  const names = inventory.apps.map((a) => a.name);
+  if (requested) {
+    const r = String(requested).toLowerCase();
+    const hit =
+      names.find((n) => n.toLowerCase() === r) ??
+      names.find((n) => n.toLowerCase().includes(r) || r.includes(n.toLowerCase()));
+    return { name: hit ?? null, requested, inferred: false, matched: Boolean(hit) };
+  }
+  return { name: inventory.primaryApp, requested: null, inferred: true, matched: Boolean(inventory.primaryApp) };
+}
+
+/** Classify a file as the developer's app, the Overwolf platform, or another app. */
+function fileRole(category, app, ownedName) {
+  if (!app) return "platform"; // root traces, updater, crash, etc.
+  if (ownedName && app.toLowerCase() === ownedName.toLowerCase()) return "owned";
+  if (category === "system-app-log" || isPlatformApp(app)) return "platform";
+  return "other";
+}
+
+/** Diagnostic weight by window: the background/main window holds the business logic. */
+function windowWeight(window) {
+  if (!window) return 1;
+  if (/^(background|main|index|controller|service|kernel)/i.test(window)) return 3;
+  if (/^(in_?game|overlay)/i.test(window)) return 1.5;
+  return 1;
 }
 
 function safeRead(path, size) {
@@ -111,6 +145,7 @@ function crashSignal(files) {
 export function diagnose(dir, opts = {}) {
   const inventory = readBundle(dir);
   const detectors = [...DETECTORS, ...(opts.extraDetectors ?? [])];
+  const ownedApp = resolveOwnedApp(inventory, opts.ownedApp);
 
   // Parse every log file we care about, tagging each entry with its file ctx.
   /** @type {{entry: any, ctx: {file: any}, label: string}[]} */
@@ -123,11 +158,12 @@ export function diagnose(dir, opts = {}) {
     if (!PARSE_CATEGORIES.has(f.category)) continue;
     const text = safeRead(f.path, f.size);
     if (text == null) continue;
+    const role = fileRole(f.category, f.app, ownedApp.name);
     if (f.category === "platform-trace") platformText += "\n" + text;
-    if (f.category === "app-log") appText += "\n" + text;
+    if (role === "owned") appText += "\n" + text; // env facts come from the dev's own app
 
     const entries = parseLines(text);
-    const ctx = { file: { category: f.category, app: f.app, window: f.window, system: Boolean(f.app && /^overwolf\b/i.test(f.app)) } };
+    const ctx = { file: { category: f.category, app: f.app, window: f.window, role, system: role === "platform" && Boolean(f.app) } };
     const label = fileLabel(f);
     for (const e of entries) tagged.push({ entry: e, ctx, label });
 
@@ -152,6 +188,7 @@ export function diagnose(dir, opts = {}) {
     const matches = [];
     for (const { entry, ctx, label } of tagged) {
       if (entry.message === undefined && entry.level === undefined) continue;
+      if (ctx.file.role === "other") continue; // not the developer's app or Overwolf — ignore
       if (!inScope(d.scope ?? "any", ctx.file.category)) continue;
       let ok = false;
       try {
@@ -253,19 +290,36 @@ export function diagnose(dir, opts = {}) {
     .sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0))
     .slice(0, MAX_TIMELINE);
 
-  // Cluster the actual error/warning messages so the report can lead with the
-  // distinct problems (e.g. "Database has been closed ×412") instead of a raw count.
-  // Skip Overwolf's own system-app logs — focus on the developer app + platform.
-  const errItems = [];
-  const warnItems = [];
+  // Cluster the actual error/warning messages, split by who owns the log:
+  //  - owned:    the developer's app  → topErrors / topWarnings (the headline)
+  //  - platform: Overwolf itself      → platformErrors (could be the source)
+  //  - other:    third-party apps     → counted only, not detailed (not the dev's bug)
+  const ownedErr = [];
+  const ownedWarn = [];
+  const platformErr = [];
+  const otherErr = new Map();
+  const otherWarn = new Map();
   for (const { entry, ctx, label } of tagged) {
-    if (ctx.file.category === "system-app-log") continue;
-    const msg = entry.message ?? entry.raw;
-    if (entry.level === "ERROR" || entry.level === "FATAL") errItems.push({ message: msg, level: entry.level, ts: entry.ts, file: label });
-    else if (entry.level === "WARN") warnItems.push({ message: msg, level: entry.level, ts: entry.ts, file: label });
+    const isErr = entry.level === "ERROR" || entry.level === "FATAL";
+    const isWarn = entry.level === "WARN";
+    if (!isErr && !isWarn) continue;
+    const item = { message: entry.message ?? entry.raw, level: entry.level, ts: entry.ts, file: label, window: ctx.file.window };
+    if (ctx.file.role === "owned") (isErr ? ownedErr : ownedWarn).push(item);
+    else if (ctx.file.role === "platform") {
+      if (isErr) platformErr.push(item);
+    } else {
+      const m = isErr ? otherErr : otherWarn;
+      m.set(ctx.file.app, (m.get(ctx.file.app) ?? 0) + 1);
+    }
   }
-  const topErrors = clusterMessages(errItems, 8);
-  const topWarnings = clusterMessages(warnItems, 5);
+  // Rank owned errors so the background/main window (where business logic lives,
+  // per Overwolf best practice) floats up over noisy UI-window errors.
+  const topErrors = clusterMessages(ownedErr, { limit: 8, score: (c) => c.count * windowWeight(c.window) });
+  const topWarnings = clusterMessages(ownedWarn, { limit: 5 });
+  const platformErrors = clusterMessages(platformErr, { limit: 6 });
+  const otherApps = [...new Set([...otherErr.keys(), ...otherWarn.keys()])]
+    .map((name) => ({ name, errors: otherErr.get(name) ?? 0, warnings: otherWarn.get(name) ?? 0 }))
+    .sort((a, b) => b.errors - a.errors);
 
   const environment = extractEnvironment(platformText, appText);
 
@@ -278,13 +332,21 @@ export function diagnose(dir, opts = {}) {
       valid: inventory.valid,
       root: inventory.root,
       primaryApp: inventory.primaryApp,
-      apps: inventory.apps.map((a) => ({ name: a.name, system: a.system, files: a.files.length, bytes: a.bytes })),
+      apps: inventory.apps.map((a) => ({
+        name: a.name,
+        role: a.name === ownedApp.name ? "owned" : a.system ? "platform" : "other",
+        files: a.files.length,
+        bytes: a.bytes,
+      })),
       fileCount: inventory.files.length,
       categories: countBy(inventory.files, (f) => f.category),
     },
+    ownedApp,
     environment,
     topErrors,
     topWarnings,
+    platformErrors,
+    otherApps,
     sessions: sessionsByFile,
     signals,
     correlations,

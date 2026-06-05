@@ -26,11 +26,14 @@ send the model raw log files.
 ## CLI contract
 
 ```
-node engine/cli.mjs <path> [--json | --report] [--redact] [--rules <file>]
+node engine/cli.mjs <path> [--app <name>] [--json | --report] [--redact] [--rules <file>]
 ```
 
 - **`<path>`** — a `.zip` (extracted via the host's unzip) or an already-extracted
   folder. Required.
+- **`--app <name>`** — the developer's app (the `Apps/<name>` folder; case-insensitive,
+  substring ok). Scopes the report to that app + Overwolf; other apps in the bundle are
+  ignored. If omitted, the largest non-Overwolf app is assumed (`ownedApp.inferred`).
 - **`--json`** — write the diagnosis object to **stdout** as JSON. This is the
   integration point.
 - **`--report`** — human-readable report to stdout (default if neither flag given).
@@ -54,16 +57,23 @@ node engine/cli.mjs <path> [--json | --report] [--redact] [--rules <file>]
     "fileCount": 8,
     "categories": { "app-log": 4, "platform-trace": 1, "crash": 1, "updater": 1 }
   },
+  "ownedApp": {                         // which app the report is scoped to
+    "name": "Counterwatch", "requested": "Counterwatch", "inferred": false, "matched": true
+  },
   "environment": {                      // any subset; keys omitted when not found
     "appVersion": "2.0.0", "overwolfVersion": "0.300.0.11",
     "os": "Windows 11 64-bit", "gpu": "NVIDIA GeForce RTX 3060", "timezone": "UTC+02:00"
   },
-  "topErrors": [                        // distinct ERROR/FATAL messages, most frequent first — usually the headline
+  "topErrors": [                        // the OWNED app's distinct errors, background/main-window weighted — the headline
     { "count": 412, "level": "ERROR", "sample": "Database has been closed",
-      "normalized": "database has been closed", "firstTs": 1767265200000, "lastTs": 1767265500000,
-      "file": "Apps/<App>/background.html.log" }
+      "normalized": "database has been closed", "window": "background",
+      "firstTs": 1767265200000, "lastTs": 1767265500000, "file": "Apps/<App>/background.html.log" }
   ],
-  "topWarnings": [ /* same shape, for WARN lines */ ],
+  "topWarnings": [ /* same shape, owned app's WARN lines */ ],
+  "platformErrors": [ /* same shape — Overwolf's OWN errors (traces/updater/system apps); could be the source */ ],
+  "otherApps": [                        // third-party apps you don't own — counts only, ignore these
+    { "name": "Thunderstore Mod Manager", "errors": 10, "warnings": 7 }
+  ],
   "sessions": [
     { "file": "Apps/ExampleApp/background.html.log", "window": "background",
       "sessions": [{ "entries": 11, "start": 1767265200010, "end": 1767265503000 }] }

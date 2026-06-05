@@ -15,6 +15,9 @@ Usage:
   node engine/cli.mjs <path-to-zip-or-folder> [options]
 
 Options:
+  --app <name>      Your app's name (the Apps/<name> folder). Focuses the report on
+                    your app + Overwolf; other apps in the bundle are ignored. If
+                    omitted, the largest non-Overwolf app is assumed.
   --json            Emit the diagnosis as JSON (machine-readable; what the skill uses).
   --report          Emit a human-readable report (default).
   --redact          Mask PII (emails, UUIDs, tokens, gamertags, home paths, IPs).
@@ -24,13 +27,14 @@ Options:
 Privacy: a bundle contains a real end-user's data. Use --redact before sharing output.`;
 
 function parseArgs(argv) {
-  const args = { input: undefined, json: false, report: false, redact: false, rules: undefined };
+  const args = { input: undefined, json: false, report: false, redact: false, rules: undefined, app: undefined };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") args.json = true;
     else if (a === "--report") args.report = true;
     else if (a === "--redact") args.redact = true;
     else if (a === "--rules") args.rules = argv[++i];
+    else if (a === "--app") args.app = argv[++i];
     else if (a === "-h" || a === "--help") args.help = true;
     else if (!a.startsWith("-") && args.input === undefined) args.input = a;
   }
@@ -59,7 +63,11 @@ function renderReport(d) {
 
   h("Overwolf Log Doctor — diagnosis");
   lines.push(`Bundle valid: ${d.bundle.valid ? "yes" : "NO (does not look like an Overwolf bundle)"}`);
-  lines.push(`Primary app folder: ${d.bundle.primaryApp ?? "(none detected)"}`);
+  const oa = d.ownedApp ?? { name: d.bundle.primaryApp, inferred: true, matched: true, requested: null };
+  let appLine = `Your app: ${oa.name ?? "(none detected)"}`;
+  if (oa.requested && !oa.matched) appLine += ` — ⚠ requested "${oa.requested}" not found; nothing scoped to it`;
+  else if (oa.inferred) appLine += ` (inferred as the largest non-Overwolf app — pass --app to confirm)`;
+  lines.push(appLine);
   lines.push(`Files: ${d.bundle.fileCount} (${Object.entries(d.bundle.categories).map(([k, v]) => `${k}:${v}`).join(", ")})`);
 
   if (Object.keys(d.environment).length) {
@@ -67,17 +75,30 @@ function renderReport(d) {
     for (const [k, v] of Object.entries(d.environment)) lines.push(`  ${k}: ${v}`);
   }
 
-  // The headline: the distinct error messages, most frequent first.
-  h("Top errors (distinct messages, most frequent)");
-  if (!d.topErrors?.length) lines.push("  (no error-level lines found)");
+  // The headline: the developer app's distinct errors, background/main weighted.
+  h(`Top errors — ${oa.name ?? "your app"} (background/main window prioritized)`);
+  if (!d.topErrors?.length) lines.push("  (no error-level lines in your app's logs)");
   for (const c of d.topErrors ?? []) {
     lines.push(`  ${String(c.count).padStart(6)}×  (${c.level}) ${clean(c.sample, 150)}`);
-    lines.push(`           ${c.file ?? ""} · ${fmtTs(c.firstTs)} → ${fmtTs(c.lastTs)}`);
+    lines.push(`           ${c.window ? `[${c.window}] ` : ""}${c.file ?? ""} · ${fmtTs(c.firstTs)} → ${fmtTs(c.lastTs)}`);
   }
 
   if (d.topWarnings?.length) {
-    h("Top warnings (distinct messages, most frequent)");
-    for (const c of d.topWarnings) lines.push(`  ${String(c.count).padStart(6)}×  ${clean(c.sample, 130)}`);
+    h(`Top warnings — ${oa.name ?? "your app"}`);
+    for (const c of d.topWarnings) lines.push(`  ${String(c.count).padStart(6)}×  ${c.window ? `[${c.window}] ` : ""}${clean(c.sample, 120)}`);
+  }
+
+  if (d.platformErrors?.length) {
+    h("Overwolf platform errors (Overwolf's own logs — may be the source, not your code)");
+    for (const c of d.platformErrors) {
+      lines.push(`  ${String(c.count).padStart(6)}×  (${c.level}) ${clean(c.sample, 150)}`);
+      lines.push(`           ${c.file ?? ""} · ${fmtTs(c.firstTs)} → ${fmtTs(c.lastTs)}`);
+    }
+  }
+
+  if (d.otherApps?.length) {
+    h("Other apps in the bundle (not yours — ignored)");
+    for (const a of d.otherApps) lines.push(`  ${a.name}: ${a.errors} errors, ${a.warnings} warnings (skipped)`);
   }
 
   if (d.correlations.length) {
@@ -131,7 +152,7 @@ async function main() {
 
   const resolved = resolveBundleDir(args.input);
   try {
-    let diagnosis = diagnose(resolved.dir, { extraDetectors });
+    let diagnosis = diagnose(resolved.dir, { extraDetectors, ownedApp: args.app });
     // Don't leak the temp extraction path or input path in shareable output.
     diagnosis = { ...diagnosis, bundle: { ...diagnosis.bundle, root: resolved.extracted ? "(extracted)" : diagnosis.bundle.root } };
     if (args.redact) diagnosis = createRedactor().redactDeep(diagnosis);

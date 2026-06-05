@@ -1,0 +1,3 @@
+================== new session ==================
+2026-01-01 12:00:00,000 (INFO) modmate.js (:1) - [ModMate] started
+2026-01-01 12:00:05,000 (ERROR) modmate.js (:9) - [ModMate] failed to load mod list: network error

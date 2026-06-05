@@ -37,11 +37,13 @@ export function normalizeMessage(message) {
 
 /**
  * Group items by their normalized message.
- * @param {{message: string, level?: string, ts?: number, file?: string}[]} items
- * @param {number} limit
- * @returns {{normalized: string, sample: string, count: number, level: string, firstTs: number|null, lastTs: number|null, file: string|null}[]}
+ * @param {{message: string, level?: string, ts?: number, file?: string, window?: string}[]} items
+ * @param {number | {limit?: number, score?: (c: any) => number}} [opts] limit, or
+ *   options with a custom ranking score (defaults to ranking by `count`).
+ * @returns {{normalized: string, sample: string, count: number, level: string, firstTs: number|null, lastTs: number|null, file: string|null, window: string|null}[]}
  */
-export function clusterMessages(items, limit = 8) {
+export function clusterMessages(items, opts = {}) {
+  const { limit = 8, score } = typeof opts === "number" ? { limit: opts } : opts;
   /** @type {Map<string, any>} */
   const map = new Map();
   for (const it of items) {
@@ -49,14 +51,24 @@ export function clusterMessages(items, limit = 8) {
     if (!key) continue;
     let c = map.get(key);
     if (!c) {
-      c = { normalized: key, sample: stripPrefix(it.message).slice(0, 200), count: 0, level: it.level ?? "—", firstTs: null, lastTs: null, file: it.file ?? null };
+      c = { normalized: key, sample: stripPrefix(it.message).slice(0, 200), count: 0, level: it.level ?? "—", firstTs: null, lastTs: null, file: it.file ?? null, window: it.window ?? null, _win: new Map() };
       map.set(key, c);
     }
     c.count++;
+    if (it.window) c._win.set(it.window, (c._win.get(it.window) ?? 0) + 1);
     if (typeof it.ts === "number") {
       if (c.firstTs == null || it.ts < c.firstTs) c.firstTs = it.ts;
       if (c.lastTs == null || it.ts > c.lastTs) c.lastTs = it.ts;
     }
   }
-  return [...map.values()].sort((a, b) => b.count - a.count).slice(0, limit);
+  const clusters = [...map.values()];
+  for (const c of clusters) {
+    let best = c.window;
+    let bestN = -1;
+    for (const [w, n] of c._win) if (n > bestN) ((best = w), (bestN = n));
+    c.window = best;
+    delete c._win;
+  }
+  const rank = typeof score === "function" ? score : (c) => c.count;
+  return clusters.sort((a, b) => rank(b) - rank(a) || b.count - a.count).slice(0, limit);
 }

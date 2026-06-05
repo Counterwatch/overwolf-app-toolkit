@@ -20,7 +20,14 @@ import { basename, join, relative, sep } from "node:path";
  */
 
 /** App folders that ship with Overwolf itself (not the developer's app). */
-const SYSTEM_APP_PREFIX = /^overwolf\b/i;
+// Apps that ship with Overwolf itself (not the developer's app). Besides the
+// "Overwolf …" prefix, several platform helpers have plain names.
+const SYSTEM_APP_PREFIX = /^overwolf\b|game ?events? ?provider|launcher ?events? ?provider|remote configurations?/i;
+
+/** True if an Apps/<name> folder is an Overwolf-provided app, not a developer app. */
+export function isPlatformApp(name) {
+  return SYSTEM_APP_PREFIX.test(String(name));
+}
 
 /** Recursively list files under a directory. */
 function walk(root, dir = root, acc = []) {

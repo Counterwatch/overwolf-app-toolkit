@@ -18,23 +18,31 @@ anything shareable, and mask identifiers yourself when quoting lines.
 
 ## Steps
 
-1. **Get the bundle path and the complaint.** Ask the user for the path to the `.zip`
-   (or an already-extracted folder) and a one-line description of what the user
-   reported. Note any app version / timestamp encoded in the zip filename.
+1. **Get the bundle path, the complaint, and WHICH app is the developer's.** A bundle
+   usually contains several apps — the developer's app, Overwolf's own helper apps, and
+   unrelated third-party apps. You must know which app the developer owns, because the
+   bug is usually in *their* app and they don't care about other apps' bugs. Determine
+   it from context (the repo/conversation), or run once without `--app` to see the app
+   list (`bundle.apps` / `otherApps`) and confirm with the user. Also note the complaint
+   and any app version/timestamp in the zip filename.
 
-2. **Run the parser.** It extracts the zip itself (via the host's unzip) and prints a
-   structured diagnosis. Prefer JSON for your own analysis:
+2. **Run the parser, scoped to the developer's app.** It extracts the zip itself and
+   prints a structured diagnosis. Pass `--app` so it focuses on their app + Overwolf and
+   ignores other apps:
 
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/engine/cli.mjs" "<path-to-zip-or-folder>" --json
+   node "${CLAUDE_PLUGIN_ROOT}/engine/cli.mjs" "<path-to-zip-or-folder>" --app "<AppName>" --json
    ```
 
    - Add `--rules <path>` if the app team has an external rule pack of app-specific
      detectors (see `references/extending-detectors.md`).
    - Use `--report` instead of `--json` for a quick human-readable view.
-   - The JSON has: `bundle`, `environment`, `topErrors` / `topWarnings` (distinct
-     messages clustered + counted, most frequent first — usually the headline),
-     `signals` (category counts ranked by severity), `correlations`, and a `timeline`.
+   - The JSON has: `bundle`, `ownedApp` (which app was scoped to, and whether it was
+     inferred), `environment`, `topErrors` / `topWarnings` (the developer app's distinct
+     messages, clustered + counted, **background/main window weighted** — the headline),
+     `platformErrors` (Overwolf's own errors — could be the source), `otherApps` (counts
+     for apps the developer doesn't own — ignore these), `signals`, `correlations`,
+     `timeline`.
 
 3. **Ground yourself in the platform model.** If you're unsure what a window, the
    Game Events Provider, or the bundle layout means, load the primer:
@@ -47,11 +55,23 @@ anything shareable, and mask identifiers yourself when quoting lines.
    Bundle anatomy (what each file is) if you need it:
    @${CLAUDE_PLUGIN_ROOT}/references/bundle-anatomy.md
 
-5. **Rank by relevance to the complaint.** Lead with `topErrors` (the distinct,
-   most-frequent error messages — often the real story even when the user's
-   description is a downstream symptom), then the `correlations` and the signals
-   most related to what the user reported. Note that the filename's complaint is
-   the user's *guess*; let the clustered errors tell you what's actually dominating.
+5. **Rank by relevance, with these rules of thumb:**
+   - **Their app vs. Overwolf.** Lead with `topErrors`/`topWarnings` (the developer's
+     app). Use `platformErrors` to decide if the root cause is actually **Overwolf**
+     (e.g. GEP shutdowns, failed downloads to apps.overwolf.com, updater issues) rather
+     than their code — say so explicitly when it is. **Ignore `otherApps`** entirely
+     (just mention they were present and skipped).
+   - **Background/main + recent first.** The background/main window holds the business
+     logic (Overwolf best practice), so weight those errors highest — the parser already
+     does this — and prefer the **most recent** occurrences (check each cluster's
+     `lastTs`; the current, un-rotated `background.html.log` is where a freshly-reported
+     bug lives). Treat launcher/in-game UI-window noise (autoplay/fullscreen/CSP) as
+     usually secondary unless the complaint is about the overlay/UI.
+   - **Match the complaint.** The filename complaint is the user's *guess*. A reported
+     bug is often **low-frequency** (it just happened once), so don't assume the most
+     frequent error is the reported one — scan `topErrors` (especially recent
+     background-window entries) for something matching the complaint, and also report the
+     dominant issues you find even if the user didn't mention them.
 
 6. **Write the report.** Structure it as:
    - **Summary** — one or two sentences: most likely cause(s), confidence.

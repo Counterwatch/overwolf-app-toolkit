@@ -17,7 +17,7 @@ test("detects a valid bundle and the non-Overwolf primary app", () => {
   const d = diagnose(FIXTURE);
   assert.equal(d.bundle.valid, true);
   assert.equal(d.bundle.primaryApp, "ExampleApp");
-  assert.ok(d.bundle.apps.some((a) => a.name === "Overwolf notifications" && a.system));
+  assert.ok(d.bundle.apps.some((a) => a.name === "Overwolf notifications" && a.role === "platform"));
 });
 
 test("extracts environment facts from traces and app logs", () => {
@@ -71,6 +71,32 @@ test("loads an external rule pack and runs its detectors", async () => {
 
 test("rejects a malformed rule pack", async () => {
   await assert.rejects(() => loadRulePack(pathToFileURL(join(here, "fixtures", "sample-bundle", "Crash.json")).href));
+});
+
+test("scopes errors to the developer's app; other apps are counted, not detailed", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  assert.equal(d.ownedApp.name, "ExampleApp");
+  assert.equal(d.ownedApp.matched, true);
+  assert.equal(d.ownedApp.inferred, false);
+  assert.ok(!d.topErrors.some((c) => /mod list|modmate/i.test(c.sample)), "third-party error must not be in topErrors");
+  assert.ok(d.otherApps.some((a) => a.name === "ModMate" && a.errors >= 1), "ModMate should be listed in otherApps");
+});
+
+test("Overwolf's own apps + root traces are 'platform', not 'other'", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  assert.ok(!d.otherApps.some((a) => /overwolf/i.test(a.name)));
+  assert.ok(d.platformErrors.some((c) => /download manifest/i.test(c.sample)), "updater error should be a platform error");
+});
+
+test("background/main-window errors outrank UI-window errors", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  assert.equal(d.topErrors[0].window, "background");
+});
+
+test("infers the developer's app when --app is omitted", () => {
+  const d = diagnose(FIXTURE);
+  assert.equal(d.ownedApp.inferred, true);
+  assert.equal(d.ownedApp.name, "ExampleApp");
 });
 
 test("clusters error lines into top distinct messages", () => {
