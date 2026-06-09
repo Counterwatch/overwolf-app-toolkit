@@ -99,7 +99,8 @@ into the repo's `.claude/settings.json`:
 {
   "extraKnownMarketplaces": {
     "overwolf-app-toolkit": {
-      "source": { "source": "github", "repo": "Counterwatch/overwolf-app-toolkit" }
+      "source": { "source": "github", "repo": "Counterwatch/overwolf-app-toolkit" },
+      "autoUpdate": true
     }
   },
   "enabledPlugins": {
@@ -110,9 +111,13 @@ into the repo's `.claude/settings.json`:
 ```
 
 The marketplace registers when the folder is trusted; plugins marked `true` auto-enable,
-and `false` keeps the credentials-gated console companion discoverable but off. Pair it
-with a direct registration of the docs MCP in the repo's `.mcp.json` for a stable tool
-name:
+and `false` keeps the credentials-gated console companion discoverable but off.
+`autoUpdate: true` matters: third-party marketplaces default to manual updates, so
+without it every developer stays pinned to the version first installed until they run
+`/plugin marketplace update overwolf-app-toolkit` + `/plugin update` themselves. With it,
+Claude Code refreshes the marketplace and updates the installed plugins at session
+startup. Pair it with a direct registration of the docs MCP in the repo's `.mcp.json`
+for a stable tool name:
 
 ```json
 {
