@@ -40,8 +40,8 @@ into this repo.
 `references/overwolf-platform-primer.md` is a distilled snapshot of the official docs.
 To refresh it:
 
-1. Re-read the relevant pages on https://dev.overwolf.com (each primer section links
-   its source). If you have Overwolf's official docs MCP server (`ow-docs-mcp`), re-verify
+1. Re-read the relevant pages on https://dev.overwolf.com (most primer sections link
+   their source). If you have Overwolf's official docs MCP server (`ow-docs-mcp`), re-verify
    facts with the `mcp__ow-docs-mcp__algolia_search_index_overwolf` tool (faceting queries
    with `facet_docusaurus_tag: docs-ow-native-current`) — optional, not required.
 2. Update the facts and links, correct anything that drifted, and bump the

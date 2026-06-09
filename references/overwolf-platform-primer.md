@@ -167,6 +167,9 @@ itself — so sync/auth bugs live in the app's code and backend, and show up in 
 why the doctor's `sync-signal`/`auth-signal` detectors are generic keyword matchers
 rather than platform APIs.
 
+Docs (`overwolf.io`, the one platform API here — local file IO; auth/sync are
+app-provided): https://dev.overwolf.com/ow-native/reference/io/ow-io
+
 ## 10. Logging & the support-log bundle
 
 Each window's console/log output is persisted by Overwolf into per-window log files.
