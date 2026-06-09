@@ -20,6 +20,29 @@ node engine/cli.mjs <zip|dir> --report   # run the doctor on a bundle
 
 There is **no build step and no dependencies** — keep it that way.
 
+## Looking up Overwolf docs
+
+This repo *describes* Overwolf platform behavior (the primer, signal playbook,
+platform-term detectors) but does **not** import the `@overwolf` SDK — there are no type
+definitions to grep, and Overwolf's "Native project" `CLAUDE.md` template does not apply
+here. When you need to confirm how the platform works, use this order:
+
+1. **`references/overwolf-platform-primer.md`** — the distilled offline layer.
+2. **Overwolf's official docs MCP** for depth or current facts: tool
+   `mcp__ow-docs-mcp__algolia_search_index_overwolf`, always faceted
+   `facet_docusaurus_tag: docs-ow-native-current`.
+
+A root `.mcp.json` registers the server for Claude Code (reload if it isn't listed). Any
+MCP client can use the same endpoint:
+
+```bash
+claude mcp add --transport http ow-docs-mcp \
+  https://V9EMDT18EK.algolia.net/mcp/1/cuI6UtBzTwKOL6E0Hvp-hw/mcp
+```
+
+Don't guess platform behavior; if the primer doesn't cover it and the MCP has no result,
+say so. If the primer and the live docs disagree, the live docs win.
+
 ## Hard rules
 
 - **Zero dependencies, zero build.** `engine/` is plain ESM `.mjs` runnable with `node`.

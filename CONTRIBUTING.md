@@ -41,8 +41,9 @@ into this repo.
 To refresh it:
 
 1. Re-read the relevant pages on https://dev.overwolf.com (each primer section links
-   its source). If you have the Context7 MCP server, the same docs are the library
-   `/websites/dev_overwolf` — optional, not required.
+   its source). If you have Overwolf's official docs MCP server (`ow-docs-mcp`), re-verify
+   facts with the `mcp__ow-docs-mcp__algolia_search_index_overwolf` tool (faceting queries
+   with `facet_docusaurus_tag: docs-ow-native-current`) — optional, not required.
 2. Update the facts and links, correct anything that drifted, and bump the
    `Last synced:` date at the top.
 3. Keep it concise — it's a fast first layer, not a copy of the docs.

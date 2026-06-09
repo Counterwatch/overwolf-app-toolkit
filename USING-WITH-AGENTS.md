@@ -131,6 +131,33 @@ All under `references/` — plain markdown, no tooling required:
 - `bundle-anatomy.md` — what every file in a bundle is, and the log-line format.
 - `extending-detectors.md` — the detector contract + how to add app-specific rules.
 
+For *live* Overwolf docs (current API signatures, the full manifest reference) alongside
+this offline primer, Overwolf publishes an official docs MCP server. Any MCP-capable agent
+can register it and call its `algolia_search_index_overwolf` tool (Claude Code namespaces
+it `mcp__ow-docs-mcp__algolia_search_index_overwolf`), always faceting queries with
+`facet_docusaurus_tag: docs-ow-native-current`:
+
+```bash
+claude mcp add --transport http ow-docs-mcp \
+  https://V9EMDT18EK.algolia.net/mcp/1/cuI6UtBzTwKOL6E0Hvp-hw/mcp
+```
+
+The primer stays the offline first layer; the live docs win on any conflict.
+
+## Prompting your assistant for Overwolf work
+
+Building or debugging the *app itself* (beyond reading logs)? Overwolf's
+[AI coding assistants guide](https://dev.overwolf.com/ow-native/guides/dev-tools/ai-coding-assistants-config/)
+suggests a few prompt habits that sharpen results:
+
+- Include **"Overwolf"** so the assistant prioritizes Overwolf APIs over generic web ones.
+- Specify **"Native"** or **"Electron"** to pin the framework.
+- Say **"documentation"** or **"API"** to signal the kind of answer you want.
+- Give your **filename / module** for context, and explicitly ask for a **"code example"**
+  when you need implementation, not just prose.
+- Break complex questions into individual steps.
+- For errors, paste the **raw error text** and add **"Fix"**.
+
 ## Companion: app-wide analytics
 
 The doctor diagnoses one user's bundle. For *aggregate* questions ("is this crash

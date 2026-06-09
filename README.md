@@ -61,8 +61,8 @@ is three steps:
 3. Ask it to rank findings against the user's complaint and produce a `--redact`-ed
    ticket summary.
 
-Full contract, JSON schema, and a paste-in agent instruction snippet:
-**[USING-WITH-AGENTS.md](USING-WITH-AGENTS.md)**.
+Full contract, JSON schema, a paste-in agent instruction snippet, and prompting tips for
+Overwolf work: **[USING-WITH-AGENTS.md](USING-WITH-AGENTS.md)**.
 
 ### Claude Code (optional one-step plugin)
 

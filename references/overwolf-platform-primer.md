@@ -5,17 +5,19 @@ reviewing, and debugging one without re-reading the full docs. **This primer is
 self-contained** — the facts you need are inline here. When you want more depth (exact
 API signatures, the full manifest field reference, per-game event schemas), read the
 authoritative page linked at the end of each section on **https://dev.overwolf.com**.
-That's all you need; nothing here requires any extra tooling.
+That's all you need — no special tooling required, though the optional docs MCP below
+makes fetching current docs more convenient.
 
-> _Optional:_ if the [Context7](https://context7.com) MCP server happens to be
-> available in your environment, the same Overwolf docs are the library
-> `/websites/dev_overwolf` — a convenience for fetching current docs, not a
-> requirement.
+> _Optional:_ if Overwolf's official docs MCP server (`ow-docs-mcp`) is available in your
+> environment, search the live docs with the
+> `mcp__ow-docs-mcp__algolia_search_index_overwolf` tool (always faceted
+> `facet_docusaurus_tag: docs-ow-native-current`) — a convenience for fetching current
+> docs, not a requirement.
 
 > **Last synced: 2026-06-05** against dev.overwolf.com (Native apps).
 > **How to refresh:** re-read the official docs (https://dev.overwolf.com — or, if you
-> have it, Context7 `/websites/dev_overwolf`) for the topics below, update the facts +
-> links, and bump this date. See `CONTRIBUTING.md`.
+> have it, the official `ow-docs-mcp` docs MCP described above) for the topics below,
+> update the facts + links, and bump this date. See `CONTRIBUTING.md`.
 
 If this primer and the live docs ever disagree, the live docs win.
 

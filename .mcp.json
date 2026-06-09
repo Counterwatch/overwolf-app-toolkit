@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ow-docs-mcp": {
+      "type": "http",
+      "url": "https://V9EMDT18EK.algolia.net/mcp/1/cuI6UtBzTwKOL6E0Hvp-hw/mcp"
+    }
+  }
+}

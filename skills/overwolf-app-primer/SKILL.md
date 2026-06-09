@@ -28,7 +28,8 @@ each section. When you need specifics it doesn't cover (exact API signatures, th
 manifest field reference, per-game event schemas), go to the official docs at
 **https://dev.overwolf.com** — that's all you need.
 
-Optionally, *if* the Context7 MCP server happens to be available in this environment,
-you can query the library `/websites/dev_overwolf` for the same docs — a convenience,
-not a requirement. Treat the live docs as the source of truth if they ever disagree
-with the primer.
+Optionally, *if* Overwolf's official docs MCP server (`ow-docs-mcp`) is available in this
+environment, search the live docs with the `mcp__ow-docs-mcp__algolia_search_index_overwolf`
+tool (always faceted `facet_docusaurus_tag: docs-ow-native-current`) — a convenience, not a
+requirement. Treat the live docs as the source of truth if they ever disagree with the
+primer.
