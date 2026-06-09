@@ -1,0 +1,57 @@
+name: Primer freshness
+
+# Monthly canary for references/overwolf-platform-primer.md: fetches every
+# dev.overwolf.com page the primer cites, hashes the article content, and
+# compares against the committed baseline (references/primer-freshness.json).
+# Drift means the live docs changed since the primer was last verified — a
+# human should re-read the changed pages, fix the primer if needed, and run
+# `node scripts/check-primer-freshness.mjs --update` to accept the new baseline.
+
+on:
+  schedule:
+    - cron: "0 6 3 * *" # 06:00 UTC on the 3rd of every month
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.x
+
+      - name: Check primer sources against the baseline
+        id: check
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/check-primer-freshness.mjs 2>&1 | tee freshness.txt
+
+      - name: Open or update the drift issue
+        if: steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Primer freshness: cited Overwolf docs pages changed"
+          BODY="The scheduled freshness check found drift between the primer's cited pages and the committed baseline. Re-read the pages below, update \`references/overwolf-platform-primer.md\` if needed (see CONTRIBUTING.md), then run \`node scripts/check-primer-freshness.mjs --update\` and commit the new baseline.
+
+          \`\`\`
+          $(cat freshness.txt)
+          \`\`\`
+
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EXISTING=$(gh issue list --state open --search "in:title \"Primer freshness\"" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      - name: Propagate failure
+        if: steps.check.outcome == 'failure'
+        run: exit 1

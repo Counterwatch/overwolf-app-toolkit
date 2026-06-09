@@ -10,9 +10,13 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Windows is in the matrix on purpose: every Overwolf developer and every
+    # support bundle lives on Windows, and path/zip handling is where portable
+    # Node CLIs usually break.
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         node-version: [20.x, 22.x]
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -23,3 +27,19 @@ jobs:
       # The engine is zero-dependency and zero-build, so there is nothing to
       # install or compile — just run the test suite.
       - run: node --test
+      # End-to-end smoke run of the real CLI against the synthetic fixture,
+      # exercising arg parsing, bundle walking, rule-pack loading and rendering.
+      - name: CLI smoke test
+        run: node engine/cli.mjs tests/fixtures/sample-bundle --app ExampleApp --rules tests/fixtures/rules-pack/index.mjs --report --redact
+
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.x
+      # package.json, the plugin manifests and the marketplace entries each
+      # declare a version; `npm version` only bumps the first, so drift is easy.
+      - name: Version sync
+        run: node scripts/check-version-sync.mjs

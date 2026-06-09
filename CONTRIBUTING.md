@@ -47,6 +47,21 @@ To refresh it:
 2. Update the facts and links, correct anything that drifted, and bump the
    `Last synced:` date at the top.
 3. Keep it concise — it's a fast first layer, not a copy of the docs.
+4. Accept the new freshness baseline:
+   `node scripts/check-primer-freshness.mjs --update` (it hashes every cited page; the
+   scheduled `primer-freshness` workflow compares against this baseline monthly and
+   opens an issue when the live docs move). § 11 "Hard-won gotchas" is the exception to
+   the snapshot rule: it records field-verified behavior the docs don't state, so each
+   entry needs a verification date and, where one exists, an upstream issue link.
+
+## Releasing (version sync)
+
+`npm version` bumps `package.json` only. The same version is also declared in
+`.claude-plugin/plugin.json` and in the toolkit's entry in
+`.claude-plugin/marketplace.json` — bump those with it (the console plugin's
+`plugins/console/.claude-plugin/plugin.json` + its marketplace entry version
+independently, but must match each other). CI and the release workflow enforce this via
+`node scripts/check-version-sync.mjs`.
 
 ## Pull requests
 

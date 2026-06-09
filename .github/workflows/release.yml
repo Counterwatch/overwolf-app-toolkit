@@ -41,6 +41,11 @@ jobs:
       - name: Verify before publishing
         run: node --test
 
+      # `npm version` only bumps package.json; the plugin manifests and the
+      # marketplace entries must move with it or installs ship stale versions.
+      - name: Verify version sync
+        run: node scripts/check-version-sync.mjs
+
       # Publishes via npm Trusted Publishing (OIDC) — no stored token. Requires the
       # `id-token: write` permission above and a trusted publisher configured for this
       # package on npmjs.com. To fall back to a token instead, add an `NPM_TOKEN` secret

@@ -16,9 +16,12 @@ the Claude layer is a convenience over them.
 ```bash
 node --test            # run all unit tests (engine + parser). Requires Node 20+.
 node engine/cli.mjs <zip|dir> --report   # run the doctor on a bundle
+node scripts/check-version-sync.mjs      # package.json vs plugin/marketplace manifests
+node scripts/check-primer-freshness.mjs  # primer's cited docs pages vs committed baseline
 ```
 
-There is **no build step and no dependencies** — keep it that way.
+There is **no build step and no dependencies** — keep it that way (`scripts/` are
+maintenance checks, node core modules only).
 
 ## Looking up Overwolf docs
 

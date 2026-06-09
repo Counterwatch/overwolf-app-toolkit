@@ -1,0 +1,15 @@
+{
+  "updatedAt": "2026-06-09",
+  "pages": {
+    "https://dev.overwolf.com/ow-native/getting-started/overview": "f63a4e99ff19bed7f110dade9b6fb8af56fd46dfead029e984ab3d453b487d53",
+    "https://dev.overwolf.com/ow-native/guides/dev-tools/windows/communicating-between-windows": "97228753ecd3f3aa056464df7deee7c15abde368dfa9f04574791d42fd0c63e9",
+    "https://dev.overwolf.com/ow-native/guides/dev-tools/windows/general-tips-for-using-windows": "bec7d2750bb7e72f5ffdbe53fe9a6475c8d4a274d6122f2ac8971403afbfd693",
+    "https://dev.overwolf.com/ow-native/guides/dev-tools/windows/using-overwolf-windows": "adcde3d65a8071cced3d5a678235689d15250da4bd65658524e21e9ad5581fd9",
+    "https://dev.overwolf.com/ow-native/guides/general-tech/using-game-events-in-your-app": "6c89d3788e44854f9b098242a342d4958c12605474a53be63afb51905bef3ae3",
+    "https://dev.overwolf.com/ow-native/live-game-data-gep/live-game-data-gep-intro": "03102b52db3e8dce42c0f8641cb66b93f126cdca3e5acd6106c6af9594dab2dd",
+    "https://dev.overwolf.com/ow-native/reference/games/events": "0afa762fb873e906eb29a24553d3bfd0943c0b4d7f7455d560cf4deca922390a",
+    "https://dev.overwolf.com/ow-native/reference/games/ow-games": "051dbac7bbdb9686558d680a528931e1ecabd767ae474316106414834ff0dfda",
+    "https://dev.overwolf.com/ow-native/reference/io/ow-io": "847fb828240c1eebc8be1cdee9d3d67eb84f05330b47e58e73543fccedb2e3de",
+    "https://dev.overwolf.com/ow-native/reference/manifest/manifest-json": "21f30e1b266fbf8826203e02455411796489aba7368b6f34c11289161526fbd0"
+  }
+}
