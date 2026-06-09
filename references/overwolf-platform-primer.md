@@ -124,7 +124,7 @@ Games are identified by a numeric **game id** (the same ids used in `game_target
 and `launch_events`). In logs you'll see game detection, then required-feature
 registration (§7).
 
-Docs: https://dev.overwolf.com/ow-native/reference/games/games
+Docs: https://dev.overwolf.com/ow-native/reference/games/ow-games
 
 ## 7. Game Events Provider (GEP)
 
@@ -178,3 +178,43 @@ The user's **"send logs"** action zips these together with Overwolf platform tra
 log, and per-process crash dumps. That zip is exactly what `overwolf-log-doctor`
 parses. For the full file-by-file layout and the log-line format, see
 `references/bundle-anatomy.md`.
+
+## 11. Hard-won gotchas (field-verified)
+
+Behaviors the official docs do not spell out (or describe misleadingly), verified
+empirically by a production app team. Unlike the sections above these are not
+restatements of the docs; each is dated, and the upstream issue is linked where one
+exists. If a future client/SDK release fixes one, update or remove it.
+
+- **Overlay click-through is runtime-only for `windows2`-created windows** (verified
+  2026-06, Overwolf-confirmed). For an OSR overlay created via `overwolf.windows2.create`
+  (which the official `@overwolf/odk-ts` SDK uses), the ONLY way to make the window
+  click-through is the runtime call
+  `overwolf.windows.setWindowStyle(windowId, 'InputPassThrough', cb)`. The manifest
+  window fields (`clickthrough`, `style`) and the create-time options
+  (`clickThrough`, `inputPassThrough`) are all no-ops on that path. Two extra traps:
+  the style call is silently dropped if the window is still hidden or unsized, so apply
+  it after the window is shown and positioned; and during gameplay the cursor is hidden,
+  so click-through is only testable in cursor-visible states (hero select, menus).
+  Upstream: https://github.com/overwolf/odk-ts-monorepo/issues/5 (fix announced for a
+  future client + odk-ts release).
+
+- **The v1 and v2 window APIs treat the manifest differently** (verified 2026-06,
+  Overwolf-confirmed: "when using odk-ts, the manifest is not relevant"). The classic
+  `overwolf.windows.obtainDeclaredWindow(name, overrides)` flow uses the manifest's
+  window declaration as the baseline and applies overrides. `overwolf.windows2.create`
+  does NOT consult the manifest at all: you pass the entire window definition as
+  options, and manifest-declared properties for that window are ignored. If your app
+  reads window config from the manifest under windows2/odk-ts, that is your own code
+  doing it, not the platform. Mixed usage works: v1 calls like `setWindowStyle`
+  operate fine on a v2-created window.
+
+- **`setRequiredFeatures` is expected to fail for a while after game launch**
+  (verified across two games, ongoing). The Game Events Provider attaches
+  asynchronously, so early calls fail with transient errors such as
+  "Provider is not ready", "Provider did not set features yet." or "Not in a game.".
+  Retry on a timer instead of treating these as failures; production apps commonly
+  retry every second for minutes. Only a persistent failure after the game is clearly
+  running means the feature genuinely is not supported for that game/version. Budget
+  for this in UX: in-game data can legitimately be absent for the first seconds of a
+  session.
