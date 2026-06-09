@@ -73,8 +73,10 @@ Overwolf work: **[USING-WITH-AGENTS.md](USING-WITH-AGENTS.md)**.
 
 This adds two auto-triggering skills — `overwolf-log-doctor` (say "troubleshoot this
 Overwolf log zip: <path>") and `overwolf-app-primer` (say "explain how Overwolf apps
-work"). They wrap the exact same engine and knowledge base described above. No
-credentials needed.
+work"). They wrap the exact same engine and knowledge base described above. It also
+registers Overwolf's official **`ow-docs-mcp`** docs-search MCP — no credentials,
+read-only; you'll approve it on first use, and if you've already added it yourself, your
+registration takes precedence.
 
 The same marketplace also offers an **opt-in companion**, `overwolf-console`, which
 bundles the [`overwolf-console-mcp`](https://github.com/Counterwatch/overwolf-console-mcp)
