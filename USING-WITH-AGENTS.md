@@ -133,9 +133,11 @@ All under `references/` — plain markdown, no tooling required:
 
 For *live* Overwolf docs (current API signatures, the full manifest reference) alongside
 this offline primer, Overwolf publishes an official docs MCP server. Any MCP-capable agent
-can register it and call its `algolia_search_index_overwolf` tool (Claude Code namespaces
-it `mcp__ow-docs-mcp__algolia_search_index_overwolf`), always faceting queries with
-`facet_docusaurus_tag: docs-ow-native-current`:
+can register it and call its `algolia_search_index_overwolf` tool, always faceting queries
+with `facet_docusaurus_tag: docs-ow-native-current`. Naming: a direct registration in
+Claude Code surfaces it as `mcp__ow-docs-mcp__algolia_search_index_overwolf`; when it
+arrives bundled inside the toolkit plugin instead, the name may carry a plugin prefix.
+Prefer the direct registration in any repo whose own docs reference the tool by name:
 
 ```bash
 claude mcp add --transport http ow-docs-mcp \

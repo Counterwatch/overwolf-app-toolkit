@@ -78,9 +78,57 @@ registers Overwolf's official **`ow-docs-mcp`** docs-search MCP — no credentia
 read-only; you'll approve it on first use, and if you've already added it yourself, your
 registration takes precedence.
 
+> **Tool naming caveat:** when the docs MCP comes in via this plugin, Claude Code may
+> expose its tool under a plugin-prefixed name rather than the plain
+> `mcp__ow-docs-mcp__algolia_search_index_overwolf`. If your repo's own agent docs
+> reference the tool by name, register the server directly in your repo's `.mcp.json`
+> (snippet below) — the direct registration wins over the bundled copy and keeps the
+> stable un-prefixed name.
+
 The same marketplace also offers an **opt-in companion**, `overwolf-console`, which
 bundles the [`overwolf-console-mcp`](https://github.com/Counterwatch/overwolf-console-mcp)
 server for app-wide analytics — see [Companion: app-wide analytics](#companion-app-wide-analytics).
+
+#### Enroll a whole repo (team setup)
+
+The `/plugin` commands above install for one developer. To give **every Claude Code
+session in your app's repo** the toolkit automatically (no manual installs), check this
+into the repo's `.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "overwolf-app-toolkit": {
+      "source": { "source": "github", "repo": "Counterwatch/overwolf-app-toolkit" }
+    }
+  },
+  "enabledPlugins": {
+    "overwolf-app-toolkit@overwolf-app-toolkit": true,
+    "overwolf-console@overwolf-app-toolkit": false
+  }
+}
+```
+
+The marketplace registers when the folder is trusted; plugins marked `true` auto-enable,
+and `false` keeps the credentials-gated console companion discoverable but off. Pair it
+with a direct registration of the docs MCP in the repo's `.mcp.json` for a stable tool
+name:
+
+```json
+{
+  "mcpServers": {
+    "ow-docs-mcp": {
+      "type": "http",
+      "url": "https://V9EMDT18EK.algolia.net/mcp/1/cuI6UtBzTwKOL6E0Hvp-hw/mcp"
+    }
+  }
+}
+```
+
+Finish by pointing your repo's agent instructions (CLAUDE.md / AGENTS.md) at the tools:
+Overwolf docs lookups go to `mcp__ow-docs-mcp__algolia_search_index_overwolf` (faceted
+`facet_docusaurus_tag: docs-ow-native-current`), and log-bundle triage runs the doctor
+with your app name and rule pack (`--app "YourApp" --rules <your-rules.mjs>`).
 
 ### Other skill-aware agent CLIs
 
@@ -142,10 +190,12 @@ Always eyeball redacted output before pasting it into a ticket.
 engine/             zero-dependency parser + CLI — the portable core
 references/          knowledge base (markdown, usable by any agent):
                       overwolf-platform-primer, signal-playbook, bundle-anatomy,
-                      extending-detectors
+                      extending-detectors (+ primer-freshness.json baseline)
 skills/             Claude Code skills (optional layer over engine + references)
+scripts/            maintenance checks (version sync, primer freshness) — node-only
 .claude-plugin/     marketplace.json + the toolkit plugin manifest
-plugins/console/    opt-in companion plugin that bundles overwolf-console-mcp (analytics)
+plugins/console/    opt-in companion plugin: overwolf-console-mcp (analytics) + the
+                     overwolf-console-analyst skill
 tests/              node:test suites + a synthetic fixture bundle
 USING-WITH-AGENTS.md  how to wire the engine into any LLM/agent
 ```
