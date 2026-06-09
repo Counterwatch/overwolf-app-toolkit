@@ -1,6 +1,6 @@
 {
   "name": "overwolf-app-toolkit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Open-source Claude Code plugin for Overwolf app developers: an offline log-bundle troubleshooter (overwolf-log-doctor) and a distilled Overwolf platform primer (overwolf-app-primer). Zero-dependency, zero-build.",
   "keywords": [
     "overwolf",
