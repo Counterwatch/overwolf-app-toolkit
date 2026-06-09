@@ -1,7 +1,7 @@
 {
   "name": "overwolf-console",
-  "version": "0.1.0",
-  "description": "Optional companion: bundles the overwolf-console-mcp server so your AI can query your app's Overwolf Developer Console analytics (DAU/MAU, retention, installs, crashes, ads revenue). Opt-in and credentials-gated.",
+  "version": "0.2.0",
+  "description": "Optional companion: bundles the overwolf-console-mcp server plus the overwolf-console-analyst skill so your AI can query your app's Overwolf Developer Console analytics (DAU/MAU, retention, installs, crashes, ads revenue) and knows the stats API's gotchas. Opt-in and credentials-gated.",
   "author": {
     "name": "Counterwatch",
     "url": "https://counterwatch.gg"

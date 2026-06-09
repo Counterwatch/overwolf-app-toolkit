@@ -13,8 +13,13 @@ skills) on purpose:
 - It needs **your Overwolf Console API credentials**, which Claude Code prompts for via
   the plugin's user config when you enable it.
 
-This plugin contains **no code** — it just references the published npm package
-`overwolf-console-mcp` and runs it via `npx`. The two projects stay independent.
+This plugin contains **no code** — it references the published npm package
+`overwolf-console-mcp` (run via `npx`) and adds one skill,
+**`overwolf-console-analyst`**, which teaches the assistant the stats API's gotchas
+before it reports numbers: daily data lags about a day, `days_back` is a fixed enum
+(no custom ranges), `monetized_dau` is known-broken (always `0`), filters want
+human-readable values, and "is this one user's problem widespread?" pairs the
+console tools with `overwolf-log-doctor`. The two projects stay independent.
 
 ## Enable it
 
