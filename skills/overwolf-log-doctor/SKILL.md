@@ -1,6 +1,6 @@
 ---
 name: overwolf-log-doctor
-description: Use when given an Overwolf app support-log bundle (a .zip from the app's "send logs" feature, or an extracted folder) to triage a user-reported problem — syncing, login/auth, game events (GEP), crashes, updates, network, or "it says X but it isn't working". Parses the bundle, surfaces ranked signals, and proposes likely causes plus next steps. Works for any Overwolf app.
+description: Use when an Overwolf app support-log bundle is in scope in ANY capacity — one bundle or many, as the main subject ("triage this user's logs") or as side evidence in a broader investigation (crash spikes, version regressions, missing or scarce log uploads). A bundle is a .zip from an app's "send logs" feature (filename like <complaint>_<YYYY-MM-DD>_<HH-MM-SS>_<appVersion>_<id>.zip) or its extracted folder. Covers syncing, login/auth, game events (GEP), crashes, updates, network, "it says X but it isn't working". Invoke BEFORE unzipping, listing, or reading any bundle contents by hand. Works for any Overwolf app.
 ---
 
 # Overwolf Log Doctor
@@ -84,6 +84,19 @@ anything shareable, and mask identifiers yourself when quoting lines.
 7. **Offer a redacted ticket summary.** Produce a short, copy-pasteable summary safe
    to attach to a support ticket. Generate it with `--redact` and double-check no PII
    remains before sharing.
+
+## Multiple bundles / fleet-level investigations
+
+The skill applies just as much when bundles are *evidence* rather than the subject —
+a crash spike, a version regression, "why are so few logs being uploaded". Run the
+parser once per bundle (independent runs, so they can go in parallel) and compare
+across the results: same top error in every bundle? Same version, OS, or game?
+Signals that line up with the spike timeline?
+
+Absence of bundles is itself a signal: a bundle only exists when the app's own
+log-upload path got to run. A crash that kills the process (native crash, the
+background/main window dying) never produces one — so "crashes up, uploads flat"
+usually points at native-level crashes or a broken uploader, not a quiet fleet.
 
 ## Notes & limits
 

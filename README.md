@@ -78,6 +78,13 @@ registers Overwolf's official **`ow-docs-mcp`** docs-search MCP — no credentia
 read-only; you'll approve it on first use, and if you've already added it yourself, your
 registration takes precedence.
 
+The plugin also ships a **`UserPromptSubmit` hook** that watches prompts for
+bundle-shaped `.zip` paths (`<text>_<YYYY-MM-DD>_<HH-MM-SS>_<version>_<id>.zip`) and
+reminds the agent to invoke `overwolf-log-doctor` instead of unzipping by hand. Skill
+descriptions are matched probabilistically — when bundles show up as side evidence in a
+bigger question ("crashes are up, here are the only bundles we got"), agents tend to
+treat them as plain zip files; the hook makes the routing deterministic.
+
 > **Tool naming caveat:** when the docs MCP comes in via this plugin, Claude Code may
 > expose its tool under a plugin-prefixed name rather than the plain
 > `mcp__ow-docs-mcp__algolia_search_index_overwolf`. If your repo's own agent docs
@@ -197,6 +204,7 @@ references/          knowledge base (markdown, usable by any agent):
                       overwolf-platform-primer, signal-playbook, bundle-anatomy,
                       extending-detectors (+ primer-freshness.json baseline)
 skills/             Claude Code skills (optional layer over engine + references)
+hooks/              Claude Code hooks: detect bundle paths in prompts → route to the skill
 scripts/            maintenance checks (version sync, primer freshness) — node-only
 .claude-plugin/     marketplace.json + the toolkit plugin manifest
 plugins/console/    opt-in companion plugin: overwolf-console-mcp (analytics) + the

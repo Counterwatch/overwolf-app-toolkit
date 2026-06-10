@@ -7,9 +7,9 @@ Guidance for AI coding agents (and humans) working in this repo.
 An **AI-agnostic** toolkit for Overwolf app developers. The portable core is a
 zero-dependency parser + CLI under `engine/` and a plain-markdown knowledge base under
 `references/` — usable by any agent, script, or human (see `USING-WITH-AGENTS.md`).
-On top, `skills/` + `.claude-plugin/` add an optional Claude Code layer that wraps the
-same engine and references. Keep that ordering: engine/references are the product;
-the Claude layer is a convenience over them.
+On top, `skills/` + `hooks/` + `.claude-plugin/` add an optional Claude Code layer that
+wraps the same engine and references. Keep that ordering: engine/references are the
+product; the Claude layer is a convenience over them.
 
 ## Commands
 
@@ -75,6 +75,9 @@ say so. If the primer and the live docs disagree, the live docs win.
   `references/extending-detectors.md` for the contract.
 - **A new skill:** add `skills/<name>/SKILL.md` with `name` + a trigger-rich
   `description`; reference shared docs via `${CLAUDE_PLUGIN_ROOT}`.
+- **A hook:** add the script under `hooks/` (zero-dep `.mjs`, export the pure logic so
+  tests can import it) and register it in `hooks/hooks.json`. Hooks must never block or
+  break the user's prompt — fail silent on malformed input. Add a `tests/` suite.
 
 ## Git workflow
 

@@ -1,0 +1,16 @@
+{
+  "description": "Injects a reminder to use the overwolf-log-doctor skill whenever the user's prompt contains Overwolf support-log bundle paths (so bundles never get opened by hand, even when they appear as side evidence in a broader question).",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/detect-log-bundle.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

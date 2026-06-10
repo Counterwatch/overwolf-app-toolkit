@@ -23,6 +23,7 @@
   "files": [
     ".claude-plugin",
     "engine",
+    "hooks",
     "references",
     "skills",
     "README.md",
