@@ -57,3 +57,41 @@ test("sync summarize uses the latest entry by timestamp, not array order", () =>
   ]);
   assert.equal(data.lastPushed, 0);
 });
+
+test("process-crash matches the Overwolf 'App crashed ... ProcessCrashed' trace line", () => {
+  const pc = get("process-crash");
+  const line = "[UI][17688] <12MB> ExtensionWebApp - App crashed - ExampleApp ('uid') (reason: ProcessCrashed)";
+  assert.ok(pc.match({ level: "ERROR", message: line }, ctx));
+  // a launch (no "(reason: ...)") must not look like a crash
+  assert.equal(pc.match({ level: "INFO", message: "ExtensionWebApp - App launched - ExampleApp" }, ctx), false);
+});
+
+test("process-crash summarize groups crashes by app and reason", () => {
+  const pc = get("process-crash");
+  const data = pc.summarize([
+    { message: "ExtensionWebApp - App crashed - ExampleApp ('uid') (reason: ProcessCrashed)" },
+    { message: "ExtensionWebApp - App crashed - ExampleApp ('uid') (reason: Killed)" },
+    { message: "ExtensionWebApp - App crashed - Other Tracker ('x') (reason: ProcessCrashed)" },
+  ]);
+  assert.equal(data.count, 3);
+  assert.deepEqual(data.byApp, {
+    ExampleApp: { ProcessCrashed: 1, Killed: 1 },
+    "Other Tracker": { ProcessCrashed: 1 },
+  });
+});
+
+test("renderer-crash fires only on browser-crash files and captures app + native fault", () => {
+  const rc = get("renderer-crash");
+  const bctx = { file: { category: "browser-crash", app: null, window: null, system: false } };
+  const cmd = { level: "INFO", message: "OverwolfBrowser.exe --type=renderer --owapp=ExampleApp - background --no-sandbox /prefetch:1" };
+  const exc = { level: "ERROR", message: "exception\nSystem.Runtime.InteropServices.SEHException (0x80004005): boom\n   at libcef.execute_process()" };
+  assert.ok(rc.match(cmd, bctx));
+  assert.ok(rc.match(exc, bctx));
+  // the same lines in an ordinary app log must not match
+  assert.equal(rc.match(cmd, ctx), false);
+
+  const data = rc.summarize([cmd, exc]);
+  assert.deepEqual(data.apps, ["ExampleApp - background"]);
+  assert.equal(data.exceptions.length, 1);
+  assert.match(data.exceptions[0], /SEHException \(0x80004005\)/);
+});

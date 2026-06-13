@@ -10,7 +10,7 @@ import { parseLines, splitSessions, timeSpan } from "./logline.mjs";
 import { DETECTORS, levelSeverity, severityRank } from "./detectors.mjs";
 import { clusterMessages, distinctCount } from "./cluster.mjs";
 
-const PARSE_CATEGORIES = new Set(["platform-trace", "updater", "app-log", "system-app-log"]);
+const PARSE_CATEGORIES = new Set(["platform-trace", "updater", "app-log", "system-app-log", "browser-crash"]);
 const MAX_READ_BYTES = 8 * 1024 * 1024;
 const MAX_EVIDENCE = 8;
 const MAX_TIMELINE = 80;

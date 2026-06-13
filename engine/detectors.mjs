@@ -185,6 +185,63 @@ export const DETECTORS = [
         e.message ?? "",
       ),
   },
+  {
+    id: "process-crash",
+    title: "App process crash (Overwolf ProcessCrashed)",
+    category: "crash",
+    severity: "error",
+    scope: "overwolf",
+    // The Overwolf client trace records every app's hard process death:
+    //   ExtensionWebApp - App crashed - <AppName> ('<uid>') (reason: <Reason>)
+    // This is the platform's authoritative crash record. It is distinct from an
+    // app's own "unclean shutdown" heuristic, which is a SUPERSET of crashes (it
+    // also fires on PC shutdown, Overwolf-client-update restart, and task-kill).
+    // The reported app name lets a consumer tell its own crash from another app's.
+    match: (e) => /\bApp crashed - .+\(reason:\s*[^)]+\)/i.test(e.message ?? ""),
+    summarize: (entries) => {
+      /** @type {Record<string, Record<string, number>>} */
+      const byApp = {};
+      let count = 0;
+      for (const e of entries) {
+        const m = (e.message ?? "").match(
+          /\bApp crashed - (.+?)\s*(?:\('[^']*'\)\s*)?\(reason:\s*([^)]+)\)/i,
+        );
+        if (!m) continue;
+        count += 1;
+        const app = m[1].trim();
+        const reason = m[2].trim();
+        byApp[app] = byApp[app] ?? {};
+        byApp[app][reason] = (byApp[app][reason] ?? 0) + 1;
+      }
+      return { count, byApp };
+    },
+  },
+  {
+    id: "renderer-crash",
+    title: "Renderer process crash (CEF / native fault)",
+    category: "crash",
+    severity: "error",
+    scope: "overwolf",
+    // OverwolfBrowserError_<pid>.log is the CEF sub-process crash record: a
+    // command line that identifies the app/window (--owapp / --type=renderer)
+    // followed by a native fault (e.g. an SEHException 0x80004005 in libcef).
+    // Pairs with process-crash and explains the native cause behind it.
+    match: (e, ctx) =>
+      ctx?.file?.category === "browser-crash" &&
+      (isErrorish(e) || /--owapp=|--type=renderer|exception/i.test(e.message ?? "")),
+    summarize: (entries) => {
+      const text = entries.map((e) => e.message ?? e.raw ?? "").join("\n");
+      const apps = [...new Set([...text.matchAll(/--owapp=(.+?)\s+--/g)].map((m) => m[1].trim()))];
+      const exceptions = [
+        ...new Set(
+          [...text.matchAll(/((?:\w+\.)*\w*Exception)\s*\((0x[0-9A-Fa-f]+)\)/g)].map(
+            (m) => `${m[1]} (${m[2]})`,
+          ),
+        ),
+      ];
+      return { apps, exceptions };
+    },
+  },
 ];
 
 /**

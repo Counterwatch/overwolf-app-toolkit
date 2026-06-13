@@ -132,6 +132,18 @@ test("flags local storage / database issues", () => {
   assert.ok(byId(diagnose(FIXTURE), "database-signal"), "expected database-signal");
 });
 
+test("detects a confirmed process crash and the renderer native fault", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  const pc = byId(d, "process-crash");
+  assert.ok(pc, "expected process-crash signal");
+  assert.deepEqual(pc.data.byApp.ExampleApp, { ProcessCrashed: 1 });
+
+  const rc = byId(d, "renderer-crash");
+  assert.ok(rc, "expected renderer-crash signal");
+  assert.ok(rc.data.apps.includes("ExampleApp - background"));
+  assert.match(rc.data.exceptions[0], /SEHException/);
+});
+
 test("handles a non-bundle directory gracefully", () => {
   const d = diagnose(join(here, "fixtures", "rules-pack"));
   assert.equal(d.bundle.valid, false);

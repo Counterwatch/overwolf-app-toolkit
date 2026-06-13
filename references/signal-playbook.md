@@ -54,6 +54,17 @@ These combine multiple signals and are usually the headline.
 - **`crash-report`** — a captured crash/exception. **Important:** if `data.isLogUpload`
   is true, this is the "send logs" telemetry, **not** an app crash — don't report it as
   one. Otherwise, pair it with `ExceptionDetails.txt` for the stack.
+- **`process-crash`** fires when the Overwolf client recorded a hard process death
+  (`App crashed - <app> (reason: <Reason>)` in a `Trace_*.log`), the platform's
+  authoritative crash record. `data.byApp` groups crashes by app and reason; confirm the
+  crashed app is the developer's, not a third-party app sharing the bundle. When this is
+  absent next to a marker-based "unclean shutdown", the termination was probably benign
+  (PC shutdown, Overwolf-client-update restart, task-kill), not a crash.
+- **`renderer-crash`** means a CEF sub-process (renderer/GPU) died, read from an
+  `OverwolfBrowserError_<pid>.log`. `data.apps` is the crashed app/window (from `--owapp`)
+  and `data.exceptions` is the native fault (e.g. `SEHException (0x80004005)` in libcef).
+  It is the native cause behind a `process-crash`; a crash with no app JS frame is a
+  platform/CEF problem to escalate to Overwolf, not an app bug.
 
 ## Turning signals into a diagnosis
 

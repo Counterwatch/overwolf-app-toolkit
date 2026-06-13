@@ -22,6 +22,7 @@ two groups: **Overwolf platform** files at the root, and **per-app** logs under 
 | `OverwolfPerf.txt` | Per-process CPU/RAM snapshot. |
 | `ServiceInstall.Log` | Overwolf service registration. |
 | `*.Game.html` | Per-process crash dumps (Overwatch/OverwolfHelper/etc.). |
+| `OverwolfBrowserError_<pid>.log` | A CEF sub-process (renderer/GPU) crash log. Its command line identifies the app and window (`--owapp=<App> - <window>`, `--type=renderer`) and it carries the native fault (e.g. an `SEHException 0x80004005` in `libcef.dll`). Its presence confirms a real process crash, unlike an app's own "unclean shutdown" marker, which is a superset (it also covers benign terminations). |
 
 ## `Apps/<AppName>/` — per-app window logs
 

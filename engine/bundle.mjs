@@ -5,7 +5,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
 
-/** @typedef {"platform-trace"|"crash"|"crash-dump"|"updater"|"perf"|"service"|"app-log"|"system-app-log"|"other"} FileCategory */
+/** @typedef {"platform-trace"|"crash"|"crash-dump"|"browser-crash"|"updater"|"perf"|"service"|"app-log"|"system-app-log"|"other"} FileCategory */
 
 /**
  * @typedef {Object} BundleFile
@@ -88,6 +88,10 @@ function categorize(rel, name) {
   if (/^(installer)?trace_.*\.log$/i.test(name)) category = "platform-trace";
   else if (lower === "crash.json" || lower === "exceptiondetails.txt") category = "crash";
   else if (/\.game\.html$/i.test(name)) category = "crash-dump";
+  // CEF sub-process crash log written when a renderer/GPU process dies. Its
+  // command line names the app+window (--owapp / --type=renderer) and it carries
+  // the native fault (e.g. an SEHException in libcef). One per crashed process.
+  else if (/^overwolfbrowsererror.*\.log$/i.test(name)) category = "browser-crash";
   else if (lower === "overwolfupdater.log") category = "updater";
   else if (lower === "overwolfperf.txt") category = "perf";
   else if (lower === "serviceinstall.log") category = "service";

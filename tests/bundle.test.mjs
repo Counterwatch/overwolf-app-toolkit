@@ -15,6 +15,7 @@ test("categorizes platform files and app logs", () => {
   assert.equal(cat("Trace_2026-01-01_00-00_1234.log"), "platform-trace");
   assert.equal(cat("Crash.json"), "crash");
   assert.equal(cat("OverwolfUpdater.log"), "updater");
+  assert.equal(cat("OverwolfBrowserError_5678.log"), "browser-crash");
   assert.equal(cat("background.html.log"), "app-log");
 });
 

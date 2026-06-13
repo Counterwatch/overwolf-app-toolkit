@@ -1,0 +1,8 @@
+2026-01-01 12:29:58,000 (INFO) process command Line:
+2026-01-01 12:29:58,010 (INFO) C:\Program Files (x86)\Overwolf\0.300.0.11\OverwolfBrowser.exe --type=renderer --user-data-dir=C:\Users\exampleuser\AppData\Local\Overwolf\CefBrowserCache --owapp=ExampleApp - background --ow-permissions=535248 --no-sandbox /prefetch:1
+2026-01-01 12:29:58,020 (INFO) active frames:
+2026-01-01 12:29:58,030 (INFO) url: 'overwolf-extension://abcdefghijklmnop/background.html' name:'background'
+2026-01-01 12:29:58,040 (ERROR) exception
+System.Runtime.InteropServices.SEHException (0x80004005): An external component has thrown an exception.
+   at Xilium.CefGlue.Interop.libcef.execute_process(cef_main_args_t* args, cef_app_t* application, Void* windows_sandbox_info)
+   at CEFBrowserProcess.SubProcess.CEFSubProcess.Run()
