@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 
-import { readBundle, fileLabel, isPlatformApp } from "./bundle.mjs";
+import { readBundle, fileLabel, isPlatformApp, isGepProviderApp } from "./bundle.mjs";
 import { parseLines, splitSessions, timeSpan } from "./logline.mjs";
 import { DETECTORS, levelSeverity, severityRank } from "./detectors.mjs";
 import { clusterMessages, distinctCount } from "./cluster.mjs";
@@ -77,12 +77,79 @@ function firstMatch(text, re) {
   return m ? (m[1] ?? m[0]).trim() : undefined;
 }
 
+// Leading "YYYY-MM-DD HH:MM:SS,mmm" timestamp of a log line — used to order
+// matches by recency via lexicographic compare (valid because Overwolf zero-pads
+// to fixed width). Approximates logline.mjs's LINE_RE <ts> group but is
+// intentionally looser (optional/variable-width fraction, no level token) so it
+// still anchors lines the full parser would reject.
+const TS_PREFIX = /^\s*(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}[.,]?\d*)/;
+
+/**
+ * Like firstMatch, but returns the capture from the matching line bearing the
+ * GREATEST leading timestamp — the value the user is on NOW, not the oldest in a
+ * months-spanning bundle of rotated logs. Pass MULTIPLE patterns to locate the
+ * SAME fact several ways (e.g. an Overwolf version via "CurrentVersion:" or its
+ * install path): the globally-latest line matching ANY pattern wins, so a newer
+ * session isn't missed just because it used a different locator. Ties and
+ * untimestamped matches keep the first occurrence (the ts compare is strict).
+ */
+function latestMatch(text, ...regexes) {
+  const compiled = regexes.map((re) => new RegExp(re.source, re.flags.replace(/g/, "")));
+  let best;
+  let bestTs = "";
+  for (const line of text.split("\n")) {
+    let captured;
+    for (const re of compiled) {
+      const m = re.exec(line);
+      if (m) {
+        captured = (m[1] ?? m[0]).trim();
+        break;
+      }
+    }
+    if (captured === undefined) continue;
+    const ts = (TS_PREFIX.exec(line) || ["", ""])[1];
+    if (best === undefined || ts > bestTs) {
+      best = captured;
+      bestTs = ts;
+    }
+  }
+  return best;
+}
+
 /** Pull environment facts from platform traces + crash files + app logs. */
-function extractEnvironment(platformText, appText) {
+function extractEnvironment(platformText, appText, gepText = "") {
   const all = platformText + "\n" + appText;
   const env = {
-    appVersion: firstMatch(appText, /\bbooting version\s+([\w.]+)/i) ?? firstMatch(all, /\bapp version[:=]?\s*([\w.]+)/i),
-    overwolfVersion: firstMatch(all, /\bOverwolf(?:\.exe)?\s+v?(\d+(?:\.\d+){1,3})/i) ?? firstMatch(all, /"?Version"?\s*[:=]\s*"?(\d+(?:\.\d+){1,3})/i),
+    // app / Overwolf / GEP versions all auto-update over a months-spanning bundle,
+    // so report the MOST RECENT occurrence (latestMatch); firstMatch would return a
+    // stale version the user upgraded away from.
+    // The app's own version: the authoritative boot line wins when present (even
+    // over a later "App version:" line, which may be an analytics/telemetry value);
+    // else fall back to "App version:". Both from the dev app's logs (appText).
+    appVersion: latestMatch(appText, /\bbooting version\s+([\w.]+)/i) ?? latestMatch(appText, /\bapp version[:=]?\s*([\w.]+)/i),
+    // Overwolf client version is a PLATFORM fact (in the traces), so read it from
+    // platformText only — app logs would pollute it with their own "App version".
+    // All three locators require Overwolf's 4-segment client version (CurrentVersion:,
+    // the install path ...\Overwolf\X, or "Overwolf <ver>"). The 4-segment shape is
+    // what makes global-latest safe: loose 2-3 segment component versions (e.g.
+    // "LevelDB version: 1.22", the app's "2.46.0", an "Overwolf 2.x" product string)
+    // can't win, so latestMatch may take the globally-latest across the three.
+    overwolfVersion: latestMatch(
+      platformText,
+      /\bCurrentVersion\D{1,4}(\d+\.\d+\.\d+\.\d+)\b/i,
+      /\bOverwolf[\\/](\d+\.\d+\.\d+\.\d+)\b/i,
+      /\bOverwolf(?:\.exe)?\s+v?(\d+\.\d+\.\d+\.\d+)\b/i
+    ),
+    // GEP version is an app-agnostic fact from Overwolf's own GameEvents Provider
+    // logs ("[GEP] Running version X", or a "local_version" event), via gepText.
+    gepVersion: latestMatch(
+      gepText,
+      /\[GEP\]\s+Running version\s+(\d+(?:\.\d+){1,3})/i,
+      /local_version\D{1,6}(\d+(?:\.\d+){1,3})/i
+    ),
+    // os/gpu/timezone are user-constant within a bundle, so first === latest; keep
+    // firstMatch (their regexes are loose, and the first hit is the authoritative
+    // trace-header identification line, not an incidental later mention).
     os: firstMatch(all, /\b(Windows\s+\d+[^\n,(]*)/i),
     gpu: firstMatch(all, /\b((?:NVIDIA|AMD|Intel|Radeon|GeForce)[^\n,]{0,40})/i),
     timezone: firstMatch(all, /\bTimeZone[:=]?\s*([^\n,]{2,40})/i) ?? firstMatch(all, /\b(UTC[+-]\d{1,2}(?::\d{2})?)/i),
@@ -152,6 +219,7 @@ export function diagnose(dir, opts = {}) {
   const tagged = [];
   let platformText = "";
   let appText = "";
+  let gepText = ""; // Overwolf's GameEvents Provider logs — source of the GEP version
   const sessionsByFile = [];
 
   for (const f of inventory.files) {
@@ -161,6 +229,7 @@ export function diagnose(dir, opts = {}) {
     const role = fileRole(f.category, f.app, ownedApp.name);
     if (f.category === "platform-trace") platformText += "\n" + text;
     if (role === "owned") appText += "\n" + text; // env facts come from the dev's own app
+    if (isGepProviderApp(f.app)) gepText += "\n" + text;
 
     const entries = parseLines(text);
     const ctx = { file: { category: f.category, app: f.app, window: f.window, role, system: role === "platform" && Boolean(f.app) } };
@@ -333,7 +402,7 @@ export function diagnose(dir, opts = {}) {
     platformWarnings: { lines: platformWarnLines },
   };
 
-  const environment = extractEnvironment(platformText, appText);
+  const environment = extractEnvironment(platformText, appText, gepText);
 
   // Rank signals high→low severity for presentation.
   signals.sort((a, b) => severityRank(b.severity) - severityRank(a.severity) || b.count - a.count);

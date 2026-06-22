@@ -61,7 +61,7 @@ node engine/cli.mjs <path> [--app <name>] [--json | --report] [--redact] [--rule
     "name": "Counterwatch", "requested": "Counterwatch", "inferred": false, "matched": true
   },
   "environment": {                      // any subset; keys omitted when not found
-    "appVersion": "2.0.0", "overwolfVersion": "0.300.0.11",
+    "appVersion": "2.0.0", "overwolfVersion": "0.300.0.11", "gepVersion": "301.0.2",
     "os": "Windows 11 64-bit", "gpu": "NVIDIA GeForce RTX 3060", "timezone": "UTC+02:00"
   },
   "volume": {                           // raw lines vs. distinct messages — reveals spam; topX is capped, these are not

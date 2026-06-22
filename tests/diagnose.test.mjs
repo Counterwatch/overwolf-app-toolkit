@@ -22,11 +22,40 @@ test("detects a valid bundle and the non-Overwolf primary app", () => {
 
 test("extracts environment facts from traces and app logs", () => {
   const { environment } = diagnose(FIXTURE);
+  // The fixture's older trace boots Overwolf 0.299.0.5, the current one 0.300.0.11;
+  // overwolfVersion must be the latter (Overwolf auto-updates across a bundle).
   assert.equal(environment.overwolfVersion, "0.300.0.11");
-  assert.equal(environment.appVersion, "2.0.0");
+  // The fixture boots 2.0.0 (rotated background.html.1.log) then upgrades to
+  // 2.1.0 (current background.html.log); appVersion must be the latter.
+  assert.equal(environment.appVersion, "2.1.0");
+  // GEP provider ran 300.0.1 then updated to 301.0.2; surface the latter.
+  assert.equal(environment.gepVersion, "301.0.2");
   assert.match(environment.os, /^Windows 11/);
   assert.match(environment.gpu, /NVIDIA/);
   assert.equal(environment.timezone, "UTC+02:00");
+});
+
+test("version env facts are the most recent and resist pollution, not the earliest", () => {
+  // Bundles span months of rotated logs; the earliest version line is stale, and
+  // unrelated component/app versions must not leak in. Each version reports the
+  // most recent session, from the right source. (Positive values are pinned by
+  // the "extracts environment facts" test above.)
+  const { environment } = diagnose(FIXTURE);
+  // not the earliest boot of each — what firstMatch() would return:
+  assert.notEqual(environment.appVersion, "2.0.0");
+  assert.notEqual(environment.overwolfVersion, "0.299.0.5");
+  assert.notEqual(environment.gepVersion, "300.0.1");
+  // appVersion: the boot line must beat the later (analytics) "App version: 9.9.9".
+  assert.notEqual(environment.appVersion, "9.9.9");
+  // overwolfVersion is platform-only: a later 4-segment "CurrentVersion: 9.9.9.9"
+  // in the APP's own log must not reach it.
+  assert.notEqual(environment.overwolfVersion, "9.9.9.9");
+  // overwolfVersion is 4-segment-specific: later 2-/3-segment component versions in
+  // the trace ("LevelDB version: 1.22", "Plugin CurrentVersion: 2.5.0", a 3-segment
+  // "Overwolf 2.46.0" product string) must not win.
+  assert.notEqual(environment.overwolfVersion, "1.22");
+  assert.notEqual(environment.overwolfVersion, "2.5.0");
+  assert.notEqual(environment.overwolfVersion, "2.46.0");
 });
 
 test("fires the expected generic detectors", () => {

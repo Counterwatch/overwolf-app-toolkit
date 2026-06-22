@@ -41,7 +41,9 @@ Folders under `Apps/` whose name starts with **"Overwolf "** (e.g. `Overwolf
 notifications`, `Overwolf promotions`, `Overwolf General GameEvents Provider`,
 `Overwolf Remote Configurations`) are **Overwolf's own** system apps, not the
 developer's app. The developer's app is the non-"Overwolf" folder (the parser picks
-the largest such folder as the *primary app*).
+the largest such folder as the *primary app*). The `Overwolf General GameEvents
+Provider` logs are the source of the **GEP version** environment fact (`[GEP]
+Running version X`) — app-agnostic, since GEP is Overwolf's, not the app's.
 
 ## Log line format (shared by all apps)
 

@@ -22,11 +22,22 @@ import { basename, join, relative, sep } from "node:path";
 /** App folders that ship with Overwolf itself (not the developer's app). */
 // Apps that ship with Overwolf itself (not the developer's app). Besides the
 // "Overwolf …" prefix, several platform helpers have plain names.
-const SYSTEM_APP_PREFIX = /^overwolf\b|game ?events? ?provider|launcher ?events? ?provider|remote configurations?/i;
+// Single-source the GEP-provider arm so isGepProviderApp() and the system-app
+// classifier share one pattern and can't drift.
+const GEP_PROVIDER = "game ?events? ?provider";
+const GEP_PROVIDER_RE = new RegExp(GEP_PROVIDER, "i");
+const SYSTEM_APP_PREFIX = new RegExp(`^overwolf\\b|${GEP_PROVIDER}|launcher ?events? ?provider|remote configurations?`, "i");
 
 /** True if an Apps/<name> folder is an Overwolf-provided app, not a developer app. */
 export function isPlatformApp(name) {
   return SYSTEM_APP_PREFIX.test(String(name));
+}
+
+/** True for Overwolf's General GameEvents Provider specifically — the platform
+ * app whose logs carry the GEP version (`[GEP] Running version X`). Shares its
+ * pattern (GEP_PROVIDER) with SYSTEM_APP_PREFIX's GEP arm so they can't drift. */
+export function isGepProviderApp(name) {
+  return GEP_PROVIDER_RE.test(String(name ?? ""));
 }
 
 /** Recursively list files under a directory. */

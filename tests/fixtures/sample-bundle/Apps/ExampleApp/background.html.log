@@ -1,5 +1,5 @@
 ================== new session ==================
-2026-01-01 12:00:00,010 (INFO) BackgroundController.js (:12) - [Kernel] Starting booting version 2.0.0
+2026-01-01 12:00:00,010 (INFO) BackgroundController.js (:12) - [Kernel] Starting booting version 2.1.0
 2026-01-01 12:00:01,500 (INFO) auth.js (:40) - [Auth/otp] Sent login code to user@example.com
 2026-01-01 12:00:02,000 (INFO) auth.js (:44) - [Auth/onState] Auth state changed: SIGNED_IN (user 00000000-0000-4000-8000-000000000001)
 2026-01-01 12:00:03,000 (INFO) sync.js (:88) - [SyncService/run] Starting sync for user 00000000-0000-4000-8000-000000000001
@@ -14,3 +14,5 @@
 2026-01-01 12:05:04,000 (ERROR) db.js (:7) - [DB] IndexedDB: database has been closed
 2026-01-01 12:05:02,000 (INFO) widget.js (:9) - [CustomServiceXYZ/widget] widget refreshed for ExamplePlayer#1234
 2026-01-01 12:05:03,000 (WARN) net.js (:5) - [Net/fetch] fetch failed: net::ERR_CONNECTION_TIMED_OUT
+2026-01-01 12:06:00,000 (INFO) analytics.js (:9) - [Analytics/identify] App version: 9.9.9
+2026-01-01 12:07:00,000 (INFO) diag.js (:3) - [Diag] detected host Overwolf CurrentVersion: 9.9.9.9

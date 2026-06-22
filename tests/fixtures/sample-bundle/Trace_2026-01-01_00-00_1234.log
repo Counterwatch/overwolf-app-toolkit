@@ -1,4 +1,9 @@
-2026-01-01 12:00:00,000 (INFO) LoginSession.cs (:10) - [LoginSession] Initializing Overwolf 0.300.0.11 on Windows 11 64-bit (10.0.26200)
+2026-01-01 12:00:00,000 (INFO) LoginSession.cs (:10) - [LoginSession] Overwolf client starting on Windows 11 64-bit (10.0.26200)
+2026-01-01 12:00:00,030 (INFO) AppCenter.cs (:8) - [AppCenter] Running dll folder: F:\Applications\Overwolf\0.300.0.11
+2026-01-01 12:00:00,050 (INFO) UserInformationLog.cs (:5) - [UserInformationLog] CurrentVersion: 0.300.0.11
+2026-01-01 12:00:00,060 (INFO) Storage.cs (:3) - [Storage] LevelDB version: 1.22
+2026-01-01 12:00:00,070 (INFO) PluginManager.cs (:9) - [PluginManager] Plugin CurrentVersion: 2.5.0
+2026-01-01 12:00:00,080 (INFO) Redirect.cs (:2) - [Redirect] Overwolf 2.46.0 product page opened
 2026-01-01 12:00:00,100 (INFO) SysInfo.cs (:22) - [UserInformationLog] GPU: NVIDIA GeForce RTX 3060
 2026-01-01 12:00:00,200 (INFO) SysInfo.cs (:24) - [UserInformationLog] TimeZone: UTC+02:00
 2026-01-01 12:00:00,300 (INFO) Extensions.cs (:88) - [ExtensionDataManager] Loading extension ExampleApp v2.0.0 from C:\Users\exampleuser\AppData\Local\Overwolf\Extensions
