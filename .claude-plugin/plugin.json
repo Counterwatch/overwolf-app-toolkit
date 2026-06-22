@@ -1,6 +1,6 @@
 {
   "name": "overwolf-app-toolkit",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Open-source toolkit for Overwolf app developers: diagnose user support-log bundles (overwolf-log-doctor) and load a distilled Overwolf platform primer (overwolf-app-primer).",
   "author": {
     "name": "Counterwatch",
