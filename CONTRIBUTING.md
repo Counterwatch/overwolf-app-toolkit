@@ -47,12 +47,20 @@ To refresh it:
 2. Update the facts and links, correct anything that drifted, and bump the
    `Last synced:` date at the top.
 3. Keep it concise — it's a fast first layer, not a copy of the docs.
-4. Accept the new freshness baseline:
+4. **Re-check § 11 "Hard-won gotchas" against the pages that changed.** § 11 is the
+   exception to the snapshot rule: it records field-verified behavior the docs *don't*
+   state, so each entry needs a verification date and, where one exists, an upstream
+   issue link. That also means entries rot in a direction the freshness canary can't
+   see — when Overwolf documents a behavior, the gotcha becomes redundant even though
+   nothing about it is wrong. A changed page is the moment to check: drop the entry, or
+   narrow it to whatever is still undocumented and move the rest into the numbered
+   section. (Example: the 2026-08 sync moved the `setRequiredFeatures` retry rule into
+   § 7 once the docs stated it, leaving § 11 only the transient error strings.)
+5. Accept the new freshness baseline:
    `node scripts/check-primer-freshness.mjs --update` (it hashes every cited page; the
    scheduled `primer-freshness` workflow compares against this baseline monthly and
-   opens an issue when the live docs move). § 11 "Hard-won gotchas" is the exception to
-   the snapshot rule: it records field-verified behavior the docs don't state, so each
-   entry needs a verification date and, where one exists, an upstream issue link.
+   opens an issue when the live docs move). Adding a citation adds a page to the
+   baseline, so only link pages you actually read.
 
 ## Releasing (version sync)
 
