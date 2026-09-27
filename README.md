@@ -180,8 +180,10 @@ unrelated third-party apps), so the report is **scoped by ownership**: `topError
 `topWarnings` are *your* app's distinct, clustered messages (weighted toward the
 background/main window where the logic lives); `platformErrors` are Overwolf's own
 errors (which may be the real source); and `otherApps` just counts apps you don't own so
-they can be ignored. Plus `environment`, `sessions`, `signals`, `correlations`, and a
-`timeline`. Detectors are **generic** keyword/pattern matchers — they tell you *where to
+they can be ignored. Plus `environment`, `sessions`, `signals`, `correlations`, a
+`timeline` of the most recent notable events, and `gep`: what Overwolf's Game Events
+Provider actually delivered in each game session, read from its own logs, including any
+key it stopped delivering (with the GEP versions before and after). Detectors are **generic** keyword/pattern matchers — they tell you *where to
 look*, not a guaranteed verdict. See [USING-WITH-AGENTS.md](USING-WITH-AGENTS.md) for the
 field-by-field schema.
 

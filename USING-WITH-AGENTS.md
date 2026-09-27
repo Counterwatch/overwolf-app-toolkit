@@ -86,13 +86,38 @@ node engine/cli.mjs <path> [--app <name>] [--json | --report] [--redact] [--rule
     { "id": "sync-signal", "title": "Data sync / replication activity",
       "category": "sync", "severity": "notice", "count": 5,
       "evidence": [{ "file": "...", "ts": 1767265204200, "level": "INFO", "message": "..." }],
-      "data": { "lastPushed": 0, "sawComplete": true, "lastCompleteTs": 1767265204200 } }
+      "data": { "lastPushed": 0, "sawComplete": true, "lastCompleteTs": 1767265204200 } },
+    { "id": "myapp-no-outcome", "...": "...",   // a rule-pack detector that declared gepKeys
+      "gep": {                         // each hit placed in its GEP session, with what GEP sent there
+        "keys": ["match_info.match_outcome"], "unplaced": 0,
+        "sessions": [{ "start": 1767265800000, "end": 1767268200000, "gameName": "Example Game",
+          "gepVersion": "301.0.2", "hits": 2, "values": { "match_info.match_outcome": 0 }, "gepSentNone": true }] } }
   ],
   "correlations": [                     // cross-signal conclusions — usually the headline
     { "id": "activity-after-sync", "severity": "warn", "message": "...", "data": { } }
   ],
-  "timeline": [                         // chronological notable events (WARN/ERROR + key signals)
-    { "ts": 1767265204200, "level": "WARN", "file": "...", "message": "...", "signal": "gep-health" }
+  "gep": {                             // what Overwolf's Game Events Provider DELIVERED, from its own logs
+    "versions": [{ "version": "301.0.2", "firstTs": 1767265200000, "lastTs": 1767265805100 }],
+    "sessions": [{                      // one per game session, chronological
+      "gameId": "99999", "gameName": "Example Game", "gepVersion": "301.0.2",
+      "start": 1767265800000, "end": 1767268200200, "file": "Apps/Overwolf General GameEvents Provider/index.html.log",
+      "ended": true, "activeKeys": 6,
+      "info":   { "match_info.match_outcome": { "updates": 2, "values": 0 } },  // [GEP] info update; values = non-null
+      "events": { "match_info.match_end": 2 },                                // [GEP] New Event
+      "plugin": { "game_info.scene": { "updates": 1, "values": 1 } },         // [Plugin] — the native game plugin
+      "missing": [{ "kind": "info", "key": "match_outcome" }]                 // GEP's own end-of-game list
+    }],
+    "dropouts": [{                      // a key delivered in an earlier comparable session, none now
+      "gameName": "Example Game", "key": "match_info.match_outcome", "kind": "info",
+      "before": { "start": 1767262200000, "gepVersion": "300.0.1", "values": 2, "pluginValues": 2 },
+      "after":  { "start": 1767265800000, "gepVersion": "301.0.2", "values": 0, "updates": 2, "pluginValues": 0 },
+      "flaggedMissing": true
+    }]
+  },
+  "timeline": [                         // the MOST RECENT 80 notable events, chronological: WARN/ERROR from your app
+                                        // + Overwolf, problem-signal hits, GEP session starts and dropouts
+    { "ts": 1767265204200, "level": "WARN", "file": "...", "message": "...", "signal": "gep-health" },
+    { "ts": 1767265501500, "level": "ERROR", "file": "...", "message": "...", "repeat": 3, "lastTs": 1767265503200 }
   ]
 }
 ```
@@ -103,7 +128,13 @@ Notes:
 - `ts` is epoch milliseconds (a number) or `null`. Timestamps are the user's local
   wall-clock as written in the logs; treat them as relative within one bundle.
 - Built-in `correlations` include `activity-after-sync` and `synced-but-zero-pushed`
-  (generic shapes behind "it says synced but my data didn't save").
+  (generic shapes behind "it says synced but my data didn't save"), and
+  `gep-did-not-deliver` (an app symptom whose hits fall in GEP sessions that delivered
+  none of the keys the detector's `gepKeys` names — GEP never sent the data).
+- `gep` answers "did GEP send it, or did the app drop it?" for missing or wrong game
+  data. A key GEP lists as missing in every session is usually routine; a `dropouts`
+  entry (delivered before, none now, in a comparable session of the same game) is the
+  finding, and its `before`/`after` GEP versions are what an Overwolf GEP report needs.
 
 ## Paste-in agent instructions
 

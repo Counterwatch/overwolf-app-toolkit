@@ -19,6 +19,33 @@ These combine multiple signals and are usually the headline.
   (a) there was genuinely nothing new (already uploaded earlier), or (b) new data was
   generated but never entered the sync set (a capture/queueing bug). Disambiguate by
   finding where the user's new data *should* have been written locally before sync.
+- **`gep-did-not-deliver`** — an app symptom (a rule-pack detector that declares
+  `gepKeys`) happened in GEP sessions where GEP delivered **zero** values for those keys.
+  The app could not have had the data: the root cause is upstream (GEP / the game
+  integration), not the app. Say so plainly, then use the `gep` section to write the
+  Overwolf report. Hits in sessions where GEP *did* deliver values point back at the app.
+
+## Missing or wrong game data: read `gep` first
+
+When the complaint is about game data (wrong/missing match results, stats, kills,
+roster), decide **who lost it** before reading app errors:
+
+1. **`gep.dropouts`** — a key GEP delivered in an earlier comparable session of the same
+   game and never in a later one. `before`/`after` carry both GEP versions; `pluginValues`
+   says whether GEP's native plugin still produced it (`0` → the game integration stopped
+   producing it; `> 0` → GEP stopped forwarding it); `flaggedMissing` means GEP itself
+   reported it missing at game close.
+2. **`gep.sessions[]`** — per game session: GEP version, and for each key how many real
+   values (`values`) vs null resets (`updates`) arrived. A key the app needs with
+   `values: 0` in the session of the complaint means GEP never sent it.
+3. **Is it this user or everyone?** One bundle can't tell. Check the app's own fleet data
+   (e.g. has the rate of the symptom moved since the GEP version in `after` shipped?). A
+   per-machine dropout still goes to Overwolf, with the evidence below.
+
+**Reporting a GEP problem to Overwolf** — include the game and game id, the GEP version
+before and after, the key, per-session counts (values before → 0 after), whether the
+native plugin produced it, GEP's own `Missing feature` line, and the bundle name. Never
+attach the raw bundle or unredacted lines to a public issue.
 
 ## Per-signal guide
 
@@ -34,7 +61,12 @@ These combine multiple signals and are usually the headline.
 - **`gep-health`** — Game Events Provider trouble. The app may not be receiving live
   game events (kills, match info, roster). If the complaint is about missing in-game
   data or stats, this is likely central. Brief warnings around startup can be benign;
-  sustained ones are not. See the primer's GEP section.
+  sustained ones are not. GEP's routine version announcement (`Detected Gep Version X`,
+  logged at WARN) is excluded. See the primer's GEP section, and the `gep` section below.
+- **`gep-key-dropout`** — GEP stopped delivering a key it delivered in an earlier
+  comparable session of the same game (from `gep.dropouts`). Usually follows a GEP or game
+  update; each evidence line names the key, both sessions and both GEP versions. If the
+  complaint is about the data that key carries, this is the headline.
 - **`network-signal`** — connectivity errors (timeouts, refused/reset connections,
   `net::ERR_*`, websocket drops, 4xx/5xx). Frequently the root cause behind sync/auth
   failures. Correlate timestamps with sync/auth signals.

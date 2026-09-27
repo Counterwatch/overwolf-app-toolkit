@@ -16,3 +16,5 @@
 2026-01-01 12:05:03,000 (WARN) net.js (:5) - [Net/fetch] fetch failed: net::ERR_CONNECTION_TIMED_OUT
 2026-01-01 12:06:00,000 (INFO) analytics.js (:9) - [Analytics/identify] App version: 9.9.9
 2026-01-01 12:07:00,000 (INFO) diag.js (:3) - [Diag] detected host Overwolf CurrentVersion: 9.9.9.9
+2026-01-01 12:20:00,000 (INFO) match.js (:21) - [MatchService/end] Match ended with no outcome from game events
+2026-01-01 12:40:00,000 (INFO) match.js (:21) - [MatchService/end] Match ended with no outcome from game events

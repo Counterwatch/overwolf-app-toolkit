@@ -26,6 +26,21 @@ test("parseLines normalizes WARNING -> WARN and folds continuation lines", () =>
   assert.equal(entries[1].level, "ERROR");
 });
 
+test("parseLines does not fold a trailing newline or blank lines into the last entry", () => {
+  const [a, b] = parseLines(
+    [
+      "2026-01-01 12:00:00,000 (INFO) a.js (:1) - first",
+      "",
+      "  frame after a blank line",
+      "2026-01-01 12:00:01,000 (INFO) b.js (:2) - last",
+      "",
+      "",
+    ].join("\n"),
+  );
+  assert.equal(a.message, "a.js (:1) - first\n\n  frame after a blank line", "a blank line inside a message is kept");
+  assert.equal(b.message, "b.js (:2) - last");
+});
+
 test("splitSessions splits on the new-session marker", () => {
   const entries = parseLines(
     [

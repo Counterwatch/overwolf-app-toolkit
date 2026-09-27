@@ -120,6 +120,8 @@ function renderReport(d) {
     for (const c of d.correlations) lines.push(`  ${SEV_BADGE[c.severity] ?? "[NOTE]"} ${c.message}`);
   }
 
+  renderGep(d.gep, h, lines);
+
   if (d.sessions.length) {
     h("Sessions");
     for (const s of d.sessions.slice(0, 10)) {
@@ -137,17 +139,67 @@ function renderReport(d) {
       const compact = Object.entries(sig.data).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
       if (compact) lines.push(`        data: ${compact}`);
     }
+    // Where the signal names the GEP keys it depends on: what GEP sent in each session.
+    if (sig.gep) {
+      for (const r of sig.gep.sessions) {
+        const vals = Object.entries(r.values).map(([k, n]) => `${k}=${n}`).join(", ");
+        const verdict = r.gepSentNone ? "  ⇒ GEP sent none of it" : "";
+        lines.push(`        gep: ${fmtTs(r.start)} session (GEP ${r.gepVersion ?? "?"}): ${r.hits} hit(s), GEP delivered ${vals}${verdict}`);
+      }
+      if (sig.gep.unplaced) lines.push(`        gep: ${sig.gep.unplaced} hit(s) outside any GEP session in the bundle`);
+    }
     // Evidence only for specific problem signals — the catch-alls are in Top errors.
     if (!OVERVIEW_ONLY.has(sig.id)) {
       for (const ev of sig.evidence.slice(0, 2)) lines.push(`        · ${fmtTs(ev.ts)} (${ev.level}) ${ev.file}: ${clean(ev.message)}`);
     }
   }
 
-  h("Timeline (chronological, notable events)");
+  const TIMELINE_SHOWN = 30;
+  h(`Timeline (most recent ${Math.min(TIMELINE_SHOWN, d.timeline.length)} notable events, chronological)`);
   if (!d.timeline.length) lines.push("  (none)");
-  for (const t of d.timeline.slice(0, 30)) lines.push(`  ${fmtTs(t.ts)} (${t.level}) ${t.file}: ${clean(t.message, 200)}`);
+  for (const t of d.timeline.slice(-TIMELINE_SHOWN)) {
+    const rep = t.repeat ? ` (×${t.repeat}, until ${fmtTs(t.lastTs)})` : "";
+    lines.push(`  ${fmtTs(t.ts)} (${t.level}) ${t.file}: ${clean(t.message, 200)}${rep}`);
+  }
 
   return lines.join("\n");
+}
+
+/**
+ * What GEP delivered, per game session, and which keys stopped arriving — the part of
+ * a bundle that decides "GEP never sent it" vs "the app dropped it".
+ */
+function renderGep(gep, h, lines) {
+  if (!gep || (!gep.sessions.length && !gep.versions.length)) return;
+  const SESSIONS_SHOWN = 8;
+  h("Game Events Provider (GEP) — what it delivered, per game session");
+  if (gep.versions.length) {
+    lines.push(`  GEP versions: ${gep.versions.map((v) => `${v.version} (${fmtTs(v.firstTs)} → ${fmtTs(v.lastTs)})`).join(", ")}`);
+  }
+  if (gep.dropouts.length) {
+    lines.push("  Keys GEP stopped delivering (delivered in an earlier comparable session of the same game, none now):");
+    for (const dr of gep.dropouts) {
+      const plugin = dr.after.pluginValues === 0 ? "; native plugin produced none" : dr.after.pluginValues ? `; native plugin produced ${dr.after.pluginValues}, GEP forwarded none` : "";
+      const flagged = dr.flaggedMissing ? "; GEP flagged it missing at game close" : "";
+      lines.push(
+        `    ⚠ ${dr.gameName ?? dr.gameId ?? "?"} ${dr.key} (${dr.kind}): ${dr.before.values} in ${fmtTs(dr.before.start)} (GEP ${dr.before.gepVersion ?? "?"}) → 0 in ${fmtTs(dr.after.start)} (GEP ${dr.after.gepVersion ?? "?"})${plugin}${flagged}`,
+      );
+    }
+  }
+  if (gep.sessions.length) {
+    const shown = gep.sessions.slice(-SESSIONS_SHOWN);
+    lines.push(`  Game sessions (latest ${shown.length} of ${gep.sessions.length}):`);
+    for (const s of shown) {
+      const infoKeys = Object.values(s.info).filter((x) => x.values > 0).length;
+      const events = Object.keys(s.events).length;
+      const missing = s.missing.map((m) => m.key);
+      const miss = missing.length ? `; GEP reported missing: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? ` +${missing.length - 6}` : ""}` : "";
+      lines.push(
+        `    ${fmtTs(s.start)} → ${fmtTs(s.end)}  ${s.gameName ?? "?"}${s.gameId ? ` (${s.gameId})` : ""}  GEP ${s.gepVersion ?? "?"}  ${infoKeys} info keys, ${events} event types${miss}`,
+      );
+    }
+    lines.push("  (A key in GEP's missing list every session is usually routine; one that stopped arriving is the finding.)");
+  }
 }
 
 async function main() {

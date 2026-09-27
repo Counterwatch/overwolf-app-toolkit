@@ -8,12 +8,14 @@ import { readFileSync } from "node:fs";
 import { readBundle, fileLabel, isPlatformApp, isGepProviderApp } from "./bundle.mjs";
 import { parseLines, splitSessions, timeSpan } from "./logline.mjs";
 import { DETECTORS, levelSeverity, severityRank } from "./detectors.mjs";
-import { clusterMessages, distinctCount } from "./cluster.mjs";
+import { clusterMessages, distinctCount, normalizeMessage } from "./cluster.mjs";
+import { analyzeGep, correlateGepKeys } from "./gep.mjs";
 
 const PARSE_CATEGORIES = new Set(["platform-trace", "updater", "app-log", "system-app-log", "browser-crash"]);
 const MAX_READ_BYTES = 8 * 1024 * 1024;
 const MAX_EVIDENCE = 8;
 const MAX_TIMELINE = 80;
+const REPEAT_WINDOW_MS = 60 * 1000;
 
 /**
  * Which files a detector's scope applies to.
@@ -141,9 +143,14 @@ function extractEnvironment(platformText, appText, gepText = "") {
       /\bOverwolf(?:\.exe)?\s+v?(\d+\.\d+\.\d+\.\d+)\b/i
     ),
     // GEP version is an app-agnostic fact from Overwolf's own GameEvents Provider
-    // logs ("[GEP] Running version X", or a "local_version" event), via gepText.
+    // logs, via gepText. Current providers announce it as "Detected Gep Version X" /
+    // "Game Service Initialized vX", older ones as "[GEP] Running version X", and every
+    // one carries it in the gep_internal "local_version" update. The per-session
+    // history is the diagnosis's `gep.versions` / `gep.sessions[].gepVersion`.
     gepVersion: latestMatch(
       gepText,
+      /\bDetected Gep Version\s+(\d+(?:\.\d+){1,3})/i,
+      /\bGame Service Initialized v(\d+(?:\.\d+){1,3})/i,
       /\[GEP\]\s+Running version\s+(\d+(?:\.\d+){1,3})/i,
       /local_version\D{1,6}(\d+(?:\.\d+){1,3})/i
     ),
@@ -220,6 +227,8 @@ export function diagnose(dir, opts = {}) {
   let platformText = "";
   let appText = "";
   let gepText = ""; // Overwolf's GameEvents Provider logs — source of the GEP version
+  /** @type {{label: string, entries: any[], firstTs: number}[]} */
+  const gepFiles = []; // the same logs, parsed, for the per-session delivery analysis
   const sessionsByFile = [];
 
   for (const f of inventory.files) {
@@ -235,6 +244,7 @@ export function diagnose(dir, opts = {}) {
     const ctx = { file: { category: f.category, app: f.app, window: f.window, role, system: role === "platform" && Boolean(f.app) } };
     const label = fileLabel(f);
     for (const e of entries) tagged.push({ entry: e, ctx, label });
+    if (isGepProviderApp(f.app)) gepFiles.push({ label, entries, firstTs: timeSpan(entries).start ?? 0 });
 
     if (f.category === "app-log" && f.rotation === 0) {
       const sessions = splitSessions(entries);
@@ -311,6 +321,21 @@ export function diagnose(dir, opts = {}) {
   const crash = crashSignal(inventory.files);
   if (crash) signals.push(crash);
 
+  // What GEP actually delivered, per game session, and which keys stopped arriving.
+  const gep = analyzeGep(gepFiles.sort((a, b) => a.firstTs - b.firstTs));
+  const dropoutSignal = gepDropoutSignal(gep.dropouts);
+  if (dropoutSignal) signals.push(dropoutSignal);
+
+  // A detector (usually from an app's rule pack) can name the GEP keys its symptom
+  // depends on; place each hit in its GEP session and say what GEP sent there.
+  for (const d of detectors) {
+    if (!Array.isArray(d.gepKeys) || d.gepKeys.length === 0) continue;
+    const sig = signals.find((x) => x.id === d.id);
+    const matches = matchedById.get(d.id);
+    if (!sig || !matches) continue;
+    sig.gep = correlateGepKeys(gep.sessions, d.gepKeys.map(String), matches.map((m) => m.entry.ts));
+  }
+
   // Correlation: activity recorded after the last successful sync.
   const correlations = [];
   const syncData = signals.find((s) => s.id === "sync-signal")?.data;
@@ -330,6 +355,23 @@ export function diagnose(dir, opts = {}) {
       data: { lastActivityTs, lastSyncTs },
     });
   }
+  // An app symptom whose hits fall in GEP sessions that delivered none of the keys it
+  // depends on: GEP never sent the data, so the app could not have had it.
+  for (const sig of signals) {
+    const starved = (sig.gep?.sessions ?? []).filter((r) => r.gepSentNone);
+    if (!starved.length) continue;
+    const hits = starved.reduce((n, r) => n + r.hits, 0);
+    const versions = [...new Set(starved.map((r) => r.gepVersion).filter(Boolean))];
+    correlations.push({
+      id: "gep-did-not-deliver",
+      severity: "warn",
+      message:
+        `${hits} hit(s) of "${sig.title}" fall in ${starved.length} GEP session(s) where GEP delivered ` +
+        `${sig.gep.keys.join(", ")} zero times${versions.length ? ` (GEP ${versions.join(", ")})` : ""}. ` +
+        "GEP never sent that data, so this is an Overwolf/GEP issue rather than the app's — see the gep section.",
+      data: { signal: sig.id, keys: sig.gep.keys, sessions: starved.map((r) => ({ start: r.start, gepVersion: r.gepVersion, hits: r.hits })) },
+    });
+  }
   if (syncData && syncData.sawComplete && syncData.lastPushed === 0 && lastActivityTs) {
     correlations.push({
       id: "synced-but-zero-pushed",
@@ -341,23 +383,7 @@ export function diagnose(dir, opts = {}) {
     });
   }
 
-  // Timeline: warnings/errors plus notable detector hits, chronological.
-  const notableIds = new Set(["sync-signal", "auth-signal", "gep-health", "game-detection", "network-signal"]);
-  const timelineSet = new Map();
-  for (const { entry, label } of tagged) {
-    const isLevel = entry.level === "WARN" || entry.level === "ERROR" || entry.level === "FATAL";
-    if (!isLevel) continue;
-    timelineSet.set(entry, { ts: entry.ts ?? null, level: entry.level, file: label, message: String(entry.message ?? "").slice(0, 200) });
-  }
-  for (const id of notableIds) {
-    for (const m of matchedById.get(id) ?? []) {
-      if (timelineSet.has(m.entry)) continue;
-      timelineSet.set(m.entry, { ts: m.entry.ts ?? null, level: m.entry.level ?? "INFO", file: m.label, message: String(m.entry.message ?? "").slice(0, 200), signal: id });
-    }
-  }
-  const timeline = [...timelineSet.values()]
-    .sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0))
-    .slice(0, MAX_TIMELINE);
+  const timeline = buildTimeline(tagged, matchedById, gep);
 
   // Cluster the actual error/warning messages, split by who owns the log:
   //  - owned:    the developer's app  → topErrors / topWarnings (the headline)
@@ -432,7 +458,111 @@ export function diagnose(dir, opts = {}) {
     sessions: sessionsByFile,
     signals,
     correlations,
+    gep,
     timeline,
+  };
+}
+
+/**
+ * The MOST RECENT notable events: WARN/ERROR lines from the developer's app and
+ * Overwolf (third-party apps excluded), problem-signal hits, and GEP session
+ * starts/dropouts. A bundle spans months of rotated logs and the reported problem is
+ * almost always in the latest sessions, so the cap keeps the newest entries. A burst
+ * of one message from one file (each repeat within a minute of the last) collapses
+ * into its first entry, with a `repeat` count and the burst's `lastTs`.
+ */
+function buildTimeline(tagged, matchedById, gep) {
+  // Problem signals only. The informational activity signals (sync, auth, game
+  // detection) fire on thousands of INFO lines and have their own rollups; in a
+  // newest-first window they would push out every warning and error.
+  const notableIds = ["gep-health", "network-signal"];
+  const items = new Map();
+  for (const { entry, ctx, label } of tagged) {
+    if (ctx.file.role === "other") continue;
+    const isLevel = entry.level === "WARN" || entry.level === "ERROR" || entry.level === "FATAL";
+    if (!isLevel) continue;
+    items.set(entry, { ts: entry.ts ?? null, level: entry.level, file: label, message: String(entry.message ?? "").slice(0, 200) });
+  }
+  for (const id of notableIds) {
+    for (const m of matchedById.get(id) ?? []) {
+      if (items.has(m.entry)) continue;
+      items.set(m.entry, { ts: m.entry.ts ?? null, level: m.entry.level ?? "INFO", file: m.label, message: String(m.entry.message ?? "").slice(0, 200), signal: id });
+    }
+  }
+  const all = [...items.values()];
+  for (const s of gep.sessions) {
+    all.push({ ts: s.start, level: "INFO", file: s.file, message: `GEP ${s.gepVersion ?? "?"}: ${gameLabel(s)} session started (${s.activeKeys} keys/events delivered)`, signal: "gep-session" });
+  }
+  for (const d of gep.dropouts) {
+    all.push({ ts: d.after.start, level: "WARN", file: d.after.file, message: dropoutMessage(d), signal: "gep-key-dropout" });
+  }
+  all.sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0));
+
+  // A burst of the same message from the same file folds into its first occurrence,
+  // even when other lines interleave — bursts are what fill a capped timeline.
+  const collapsed = [];
+  const open = new Map();
+  for (const it of all) {
+    if (!it.signal) {
+      const key = `${it.file}\u0000${normalizeMessage(it.message)}`;
+      const first = open.get(key);
+      const last = first?.lastTs ?? first?.ts;
+      if (first && typeof it.ts === "number" && typeof last === "number" && it.ts - last <= REPEAT_WINDOW_MS) {
+        first.repeat = (first.repeat ?? 1) + 1;
+        first.lastTs = it.ts;
+        continue;
+      }
+      const item = { ...it };
+      open.set(key, item);
+      collapsed.push(item);
+      continue;
+    }
+    collapsed.push({ ...it });
+  }
+  return collapsed.slice(-MAX_TIMELINE);
+}
+
+function gameLabel(s) {
+  if (s.gameName && s.gameId) return `${s.gameName} (${s.gameId})`;
+  return s.gameName ?? (s.gameId ? `game ${s.gameId}` : "unknown game");
+}
+
+// Local wall-clock, like the logs themselves (they were parsed as local time).
+function fmtLocal(ts) {
+  if (typeof ts !== "number") return "?";
+  const d = new Date(ts);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** One line a developer can paste into a GEP bug report. */
+export function dropoutMessage(d) {
+  const plugin =
+    d.after.pluginValues === 0
+      ? "; GEP's native game plugin produced none either"
+      : d.after.pluginValues
+        ? `; the native plugin produced ${d.after.pluginValues} that GEP did not forward`
+        : "";
+  const flagged = d.flaggedMissing ? "; GEP listed it as a missing feature at game close" : "";
+  return (
+    `GEP stopped delivering ${d.key} (${d.kind}) for ${gameLabel(d)}: ${d.before.values} value(s) in the ${fmtLocal(d.before.start)} session ` +
+    `(GEP ${d.before.gepVersion ?? "?"}) → 0 in the ${fmtLocal(d.after.start)} session (GEP ${d.after.gepVersion ?? "?"})${plugin}${flagged}`
+  );
+}
+
+function gepDropoutSignal(dropouts) {
+  if (!dropouts.length) return null;
+  return {
+    id: "gep-key-dropout",
+    title: "GEP stopped delivering a key it delivered in an earlier session",
+    category: "game-events",
+    severity: "warn",
+    count: dropouts.length,
+    evidence: dropouts
+      .slice(-MAX_EVIDENCE)
+      .reverse()
+      .map((d) => ({ file: d.after.file, ts: d.after.start, level: "WARN", message: dropoutMessage(d).slice(0, 300) })),
+    data: { keys: [...new Set(dropouts.map((d) => d.key))] },
   };
 }
 

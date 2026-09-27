@@ -42,7 +42,9 @@ anything shareable, and mask identifiers yourself when quoting lines.
      messages, clustered + counted, **background/main window weighted** — the headline),
      `platformErrors` (Overwolf's own errors — could be the source), `otherApps` (counts
      for apps the developer doesn't own — ignore these), `signals`, `correlations`,
-     `timeline`.
+     `gep` (what Overwolf's Game Events Provider actually delivered per game session, its
+     version history, and `dropouts`: keys it stopped delivering), and `timeline` (the
+     most recent notable events).
 
 3. **Ground yourself in the platform model.** If you're unsure what a window, the
    Game Events Provider, or the bundle layout means, load the primer:
@@ -67,6 +69,15 @@ anything shareable, and mask identifiers yourself when quoting lines.
      `lastTs`; the current, un-rotated `background.html.log` is where a freshly-reported
      bug lives). Treat launcher/in-game UI-window noise (autoplay/fullscreen/CSP) as
      usually secondary unless the complaint is about the overlay/UI.
+   - **Game data missing or wrong? Decide who lost it first.** For complaints about match
+     results, stats, kills or roster, read `gep` before the app's errors: a `dropouts`
+     entry, a `gep-did-not-deliver` correlation, or `values: 0` for the needed key in the
+     complaint's session means **GEP never sent the data** — an Overwolf/GEP issue, even
+     when the app then did something wrong with the gap (e.g. recorded a default). Say
+     so, name the GEP version before/after, and draft the Overwolf report from the
+     playbook's "Reporting a GEP problem" checklist. If GEP *did* deliver the values, the
+     data was lost in the app. When asked which GEP version a given match ran on, match
+     its timestamp to `gep.sessions[].start`/`end`.
    - **Match the complaint.** The filename complaint is the user's *guess*. A reported
      bug is often **low-frequency** (it just happened once), so don't assume the most
      frequent error is the reported one — scan `topErrors` (especially recent
@@ -101,7 +112,14 @@ usually points at native-level crashes or a broken uploader, not a quiet fleet.
 ## Notes & limits
 
 - Detectors are **generic** (keyword/pattern based) and best-effort — absence of a
-  signal is not proof something is fine. Read the `timeline` for context.
+  signal is not proof something is fine. Read the `timeline` for context; it holds the
+  most recent 80 notable events, so for an older incident read the evidence
+  timestamps instead.
+- `gep` only covers sessions whose GEP provider logs are still in the bundle (they rotate
+  like app logs). A rule-pack hit outside every session is counted in `signal.gep.unplaced`.
+- If the app team's rule pack declares `gepKeys` on its "didn't get X from the game"
+  detectors, the doctor ties those symptoms to GEP delivery automatically
+  (`references/extending-detectors.md`).
 - Timestamps are the user's local wall-clock time, as written in the logs.
 - This skill never modifies the bundle and never uploads it anywhere.
 - Found a recurring pattern worth detecting automatically? Add a detector

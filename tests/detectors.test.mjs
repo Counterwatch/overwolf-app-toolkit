@@ -30,6 +30,8 @@ test("gep-health only fires on a GEP line that signals trouble", () => {
   const gep = get("gep-health");
   assert.equal(gep.match({ level: "WARN", message: "Game Events Provider appears unhealthy" }, ctx), true);
   assert.equal(gep.match({ level: "INFO", message: "GEP healthy, all good" }, ctx), false);
+  // GEP logs its version at WARN on every start — routine, not trouble.
+  assert.equal(gep.match({ level: "WARN", message: "</index/index.js> (:2) - Detected Gep Version 314.0.3" }, ctx), false);
 });
 
 test("network detector matches common connectivity errors", () => {

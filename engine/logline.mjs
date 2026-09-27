@@ -81,24 +81,35 @@ function parseHeader(line) {
 export function parseLines(text) {
   /** @type {LogEntry[]} */
   const out = [];
+  // Blank lines are held back and only folded in when real continuation text follows,
+  // so a file's trailing newline doesn't leave every last entry ending in "\n".
+  let pendingBlank = 0;
   for (const rawLine of String(text).split(/\n/)) {
     const line = rawLine.replace(/\r$/, "");
     if (MARKER_RE.test(line)) {
       out.push({ raw: line, marker: true });
+      pendingBlank = 0;
       continue;
     }
     const header = parseHeader(line);
     if (header) {
       out.push(header);
+      pendingBlank = 0;
+      continue;
+    }
+    if (line.trim().length === 0) {
+      pendingBlank++;
       continue;
     }
     const last = out[out.length - 1];
     if (last && !last.marker && last.message !== undefined) {
-      last.message += "\n" + line;
-      last.raw += "\n" + line;
-    } else if (line.trim().length > 0) {
+      const gap = "\n".repeat(pendingBlank + 1);
+      last.message += gap + line;
+      last.raw += gap + line;
+    } else {
       out.push({ raw: line });
     }
+    pendingBlank = 0;
   }
   return out;
 }

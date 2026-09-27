@@ -1,3 +1,30 @@
 ================== new session ==================
 2026-01-01 11:00:00,000 (INFO) </libs/bundle.min.js> (:1) - [GEP] Running version 300.0.1
 2026-01-01 12:00:00,000 (INFO) </libs/bundle.min.js> (:1) - [GEP] Running version 301.0.2
+================== new session ==================
+2026-01-01 12:10:00,000 (INFO) </index/index.js> (:2) - *************Game Service Initialized v301.0.2 *************
+2026-01-01 12:10:00,100 (WARN) </index/index.js> (:2) - Detected Gep Version 301.0.2
+2026-01-01 12:10:00,200 (INFO) </index/index.js> (:2) - Running Game Id detected, gameId:  99999
+2026-01-01 12:10:00,300 (INFO) </index/index.js> (:2) - RunningGameInfo detected {"gameInfo":{"isRunning":true,"title":"Example Game","id":999991,"classId":99999}}
+2026-01-01 12:10:05,000 (INFO) </index/index.js> (:2) - game launched detected, 99999, waiting for renderer: false
+2026-01-01 12:10:05,100 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"gep_internal","categoryName":"gep_internal","key":"version_info","value":"{\"local_version\":\"301.0.2\",\"is_updated\":true}"}
+2026-01-01 12:10:06,000 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"game_info","categoryName":"game_info","key":"scene","value":"lobby"}
+2026-01-01 12:11:00,000 (INFO) </index/index.js> (:2) - [Plugin] New Event  {"name":"match_start","data":""}
+2026-01-01 12:11:00,001 (INFO) </index/index.js> (:2) - [GEP] New Event  {"gameId":99999,"feature":"match_info","key":"match_start","value":null}
+2026-01-01 12:11:00,002 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"match_info","categoryName":"match_info","key":"match_outcome","value":null}
+2026-01-01 12:11:00,003 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"match_info","categoryName":"match_info","key":"match_id","value":"m-3"}
+2026-01-01 12:11:05,000 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"match_info","categoryName":"match_info","key":"roster_0","value":"{\"name\":\"PlayerOne\"}"}
+2026-01-01 12:11:05,001 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"match_info","categoryName":"match_info","key":"roster_3","value":"{\"name\":\"PlayerFour\"}"}
+2026-01-01 12:12:00,000 (INFO) </index/index.js> (:2) - [GEP] New Event  {"gameId":99999,"feature":"match_info","key":"kill","value":"1"}
+2026-01-01 12:15:00,000 (INFO) </index/index.js> (:2) - [GEP] New Event  {"gameId":99999,"feature":"match_info","key":"match_end","value":null}
+2026-01-01 12:15:00,001 (INFO) </index/index.js> (:2) - [Plugin] info update {"channelId":2,"category":"game_info","key":"scene","value":"lobby","valueLength":5}
+2026-01-01 12:30:00,000 (INFO) </index/index.js> (:2) - [GEP] New Event  {"gameId":99999,"feature":"match_info","key":"match_start","value":null}
+2026-01-01 12:30:00,001 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"match_info","categoryName":"match_info","key":"match_outcome","value":null}
+2026-01-01 12:30:00,002 (INFO) </index/index.js> (:2) - [GEP] info update {"featureName":"match_info","categoryName":"match_info","key":"match_id","value":"m-4"}
+2026-01-01 12:31:00,000 (INFO) </index/index.js> (:2) - [GEP] New Event  {"gameId":99999,"feature":"match_info","key":"kill","value":"1"}
+2026-01-01 12:35:00,000 (INFO) </index/index.js> (:2) - [GEP] New Event  {"gameId":99999,"feature":"match_info","key":"match_end","value":null}
+2026-01-01 12:50:00,000 (INFO) </index/index.js> (:2) - [GEP] Supported game ended 99999 {"isRunning":false,"title":"Example Game"}
+2026-01-01 12:50:00,050 (INFO) </index/index.js> (:2) - Stopping Game Handler 99999
+2026-01-01 12:50:00,100 (INFO) </index/index.js> (:2) - Missing feature (event) - gameId: 99999 (Example Game) - scoreboard
+2026-01-01 12:50:00,200 (INFO) </index/index.js> (:2) - Missing feature (info) - gameId: 99999 (Example Game) - match_outcome
+2026-01-01 12:50:00,201 (INFO) </index/index.js> (:2) - Missing feature (info) - gameId: 99999 (Example Game) - match_outcome

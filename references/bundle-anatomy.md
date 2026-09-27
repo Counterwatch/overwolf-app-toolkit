@@ -41,9 +41,27 @@ Folders under `Apps/` whose name starts with **"Overwolf "** (e.g. `Overwolf
 notifications`, `Overwolf promotions`, `Overwolf General GameEvents Provider`,
 `Overwolf Remote Configurations`) are **Overwolf's own** system apps, not the
 developer's app. The developer's app is the non-"Overwolf" folder (the parser picks
-the largest such folder as the *primary app*). The `Overwolf General GameEvents
-Provider` logs are the source of the **GEP version** environment fact (`[GEP]
-Running version X`) — app-agnostic, since GEP is Overwolf's, not the app's.
+the largest such folder as the *primary app*).
+
+## `Apps/Overwolf General GameEvents Provider/` — what GEP actually sent
+
+GEP's own logs (`index.html.log`, rotated `index.html.<N>.log`; one provider process
+per file, started for each game launch) are the ground truth for "did the app get the
+game data?". They are app-agnostic — GEP is Overwolf's, not the app's — and they record:
+
+| Line | Meaning |
+|---|---|
+| `Detected Gep Version X` (WARN), `Game Service Initialized vX`, older `[GEP] Running version X` | The GEP version for that provider run. The WARN level is routine. |
+| `Running Game Id detected, gameId: N` / `game launched detected, N` | A game session starts. |
+| `[GEP] info update {"featureName","categoryName","key","value"}` | An info update GEP **forwarded to apps**. `value: null` is a reset (e.g. `match_outcome` at every `match_start`), not a delivery. |
+| `[GEP] New Event {"gameId","feature","key","value"}` | An event GEP forwarded to apps. |
+| `[Plugin] info update {"category","key","value"}` / `[Plugin] New Event {"name"}` | What GEP's **native game plugin** produced, before GEP maps it to features. The plugin producing a key GEP never forwards points at GEP's mapping; the plugin producing nothing points at the game integration. |
+| `[GEP] Supported game ended N`, `Stopping Game Handler N` | The game session ends. |
+| `Missing feature (info\|event) - gameId: N (Game) - key` | At game close, GEP lists the keys it never produced this session and reports them to Overwolf. Some keys are listed in every session (per-slot or mode-specific keys) and mean nothing on their own; a key that **stopped** arriving is the finding. |
+
+The doctor turns these into the diagnosis's `gep` section: per-session delivery counts,
+the GEP version history, and `dropouts` — keys delivered in an earlier comparable
+session of the same game and never in a later one.
 
 ## Log line format (shared by all apps)
 

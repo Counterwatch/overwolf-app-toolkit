@@ -56,6 +56,23 @@ export const detectors = [
 - **`severity`** is the floor; a matching `ERROR` line lifts the signal to `error`.
 - **`summarize(entries)`** (optional) returns a plain object attached as `signal.data`.
   Keep patterns generic where you can; this is where app-specific extraction lives.
+- **`gepKeys`** (optional, array of strings) names the GEP keys the symptom depends on,
+  as `"feature.key"` (e.g. `"match_info.match_outcome"`) or a bare `"key"` to match it
+  under any feature. The doctor places each hit in the GEP game session it happened in
+  (from GEP's own logs) and attaches `signal.gep` with what GEP delivered for those keys
+  there. When hits fall in sessions where GEP delivered **none**, it adds the
+  `gep-did-not-deliver` correlation — "GEP never sent it", not an app bug. Use it on any
+  detector for "the app didn't get X from the game":
+
+  ```js
+  {
+    id: "myapp-no-match-result",
+    title: "Match saved without a result from the game",
+    scope: "app",
+    gepKeys: ["match_info.match_outcome"],
+    match: (e) => /saved without an outcome/i.test(e.message ?? ""),
+  }
+  ```
 
 ### Good practices
 

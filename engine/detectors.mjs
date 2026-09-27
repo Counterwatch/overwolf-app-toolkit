@@ -12,7 +12,10 @@
 //     scope: "any" | "app" | "overwolf",       // which logs it applies to
 //     match: (entry, ctx) => boolean,          // does this line match?
 //     summarize?: (entries, ctx) => object,    // optional rollup data
+//     gepKeys?: string[],                      // GEP keys the symptom depends on
 //   }
+// `gepKeys` ("feature.key" or a bare "key") makes the diagnosis place each hit in
+// its GEP session and report what GEP delivered for those keys there (signal.gep).
 // `entry` is a parsed LogEntry (see logline.mjs); `ctx` is { file } where file
 // carries { category, app, window, system }.
 
@@ -33,6 +36,8 @@ export function levelSeverity(level) {
 }
 
 const isErrorish = (e) => e.level === "ERROR" || e.level === "FATAL";
+
+const GEP_VERSION_ANNOUNCEMENT = /\b(Detected Gep Version|Game Service Initialized v\d|Running version)\b/i;
 
 /** @type {Array<import("./types.js").Detector>} */
 export const DETECTORS = [
@@ -72,6 +77,9 @@ export const DETECTORS = [
     scope: "any",
     match: (e) => {
       const m = e.message ?? "";
+      // GEP announces its version at WARN level on every start ("Detected Gep Version
+      // X") — routine, not trouble. The version is reported by environment/gep instead.
+      if (GEP_VERSION_ANNOUNCEMENT.test(m)) return false;
       const aboutGep = /\b(gep|game ?events? ?provider|gephealth)\b/i.test(m);
       const bad = e.level === "WARN" || isErrorish(e) || /\b(not working|unavailable|fail|timeout|unhealthy|retry)\b/i.test(m);
       return aboutGep && bad;
@@ -263,6 +271,9 @@ export async function loadRulePack(specifier) {
   for (const d of list) {
     if (!d || typeof d.id !== "string" || typeof d.match !== "function") {
       throw new Error(`Rule pack "${specifier}" has a detector missing a string id or match() function.`);
+    }
+    if (d.gepKeys !== undefined && !(Array.isArray(d.gepKeys) && d.gepKeys.every((k) => typeof k === "string" && k.length > 0))) {
+      throw new Error(`Rule pack "${specifier}": detector "${d.id}" has gepKeys that is not an array of non-empty strings.`);
     }
   }
   return list;

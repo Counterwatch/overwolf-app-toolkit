@@ -98,6 +98,11 @@ test("loads an external rule pack and runs its detectors", async () => {
   assert.ok(d.signals.find((s) => s.id === "example-app-custom"), "custom rule should fire");
 });
 
+test("rejects a rule-pack detector whose gepKeys is not a list of strings", async () => {
+  const bad = "data:text/javascript," + encodeURIComponent('export const detectors = [{ id: "x", match: () => false, gepKeys: "match_outcome" }];');
+  await assert.rejects(() => loadRulePack(bad), /gepKeys/);
+});
+
 test("rejects a malformed rule pack", async () => {
   await assert.rejects(() => loadRulePack(pathToFileURL(join(here, "fixtures", "sample-bundle", "Crash.json")).href));
 });
@@ -171,6 +176,65 @@ test("detects a confirmed process crash and the renderer native fault", () => {
   assert.ok(rc, "expected renderer-crash signal");
   assert.ok(rc.data.apps.includes("ExampleApp - background"));
   assert.match(rc.data.exceptions[0], /SEHException/);
+});
+
+test("reports what GEP delivered per game session, with each session's GEP version", () => {
+  const { gep } = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  assert.deepEqual(gep.sessions.map((s) => [s.gameName, s.gepVersion]), [
+    ["Example Game", "300.0.1"],
+    ["Example Game", "301.0.2"],
+  ]);
+  assert.deepEqual(gep.versions.map((v) => v.version), ["300.0.1", "301.0.2"]);
+});
+
+test("flags the GEP key that stopped arriving as its own signal", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  assert.equal(d.gep.dropouts.length, 1);
+  assert.equal(d.gep.dropouts[0].key, "match_info.match_outcome");
+  const sig = byId(d, "gep-key-dropout");
+  assert.ok(sig, "expected gep-key-dropout signal");
+  assert.deepEqual(sig.data.keys, ["match_info.match_outcome"]);
+  assert.match(sig.evidence[0].message, /300\.0\.1.*→ 0 .*301\.0\.2/);
+});
+
+test("a rule-pack detector's gepKeys ties its hits to what GEP delivered", async () => {
+  const pack = await loadRulePack(pathToFileURL(join(here, "fixtures", "rules-pack", "index.mjs")).href);
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp", extraDetectors: pack });
+  const sig = byId(d, "example-app-no-outcome");
+  assert.ok(sig?.gep, "expected signal.gep");
+  assert.deepEqual(
+    sig.gep.sessions.map((r) => [r.gepVersion, r.hits, r.gepSentNone]),
+    [
+      ["300.0.1", 1, false],
+      ["301.0.2", 2, true],
+    ],
+  );
+  const c = d.correlations.find((x) => x.id === "gep-did-not-deliver");
+  assert.ok(c, "expected the gep-did-not-deliver correlation");
+  assert.equal(c.data.signal, "example-app-no-outcome");
+  assert.match(c.message, /^2 hit\(s\)/);
+});
+
+test("gep-health ignores GEP's routine version announcement", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  const gh = byId(d, "gep-health");
+  assert.ok(gh.evidence.every((e) => !/Detected Gep Version/i.test(e.message)));
+});
+
+test("timeline keeps the most recent events and skips third-party apps", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  const tss = d.timeline.map((t) => t.ts ?? 0);
+  assert.deepEqual(tss, [...tss].sort((a, b) => a - b), "chronological");
+  assert.ok(!d.timeline.some((t) => /ModMate/.test(t.file)), "third-party app lines must not appear");
+  assert.ok(d.timeline.some((t) => t.signal === "gep-key-dropout"));
+  assert.ok(d.timeline.some((t) => t.signal === "gep-session"));
+});
+
+test("timeline collapses a repeated message into one entry with a count", () => {
+  const d = diagnose(FIXTURE, { ownedApp: "ExampleApp" });
+  const wf = d.timeline.filter((t) => /write failed/i.test(t.message));
+  assert.equal(wf.length, 1);
+  assert.equal(wf[0].repeat, 3);
 });
 
 test("handles a non-bundle directory gracefully", () => {
